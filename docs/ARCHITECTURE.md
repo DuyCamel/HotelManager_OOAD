@@ -33,3 +33,7 @@ Checkout lấy bảng kê từ dữ liệu backend, kiểm tra lại số phải
 ## Giới hạn vận hành
 
 Một tiến trình, một file dữ liệu. Chưa có xác minh số điện thoại thật, OTP SMS thật, callback thanh toán thật, HTTPS, phân quyền nhiều chi nhánh, lịch tác vụ máy chủ và locking nhiều client. Không dùng bản demo làm ứng dụng vận hành thật. Mặc định nhận 14:00/trả 12:00; form đặt mới đọc giờ từ cấu hình. Mốc phụ thu trả trễ được lưu để duyệt UI nhưng chưa đưa vào phép tính checkout. Công suất trong báo cáo là phút lưu trú thực tế / (số phòng đang hoạt động × số phút trong khoảng ngày), chưa theo lịch sử đóng/mở phòng. Tỷ lệ hủy lấy phiếu có ngày nhận dự kiến thuộc khoảng chọn.
+
+## Gói chuẩn bị JDBC SQL Server
+
+`infrastructure/database` cung cấp DatabaseConfig, ConnectionFactory và DatabaseConnectionCheck. Chúng đọc cấu hình từng máy, khởi tạo SET options cần cho chỉ mục lọc/cột tính toán và thực hiện kiểm tra SELECT. Chưa thay `FileHotelRepository` tại HotelBackend. Schema SQL gồm 22 bảng, có bảng trung gian dịch vụ, chi tiết hóa đơn, sổ điểm và lịch sử đổi phòng để triển khai persistence sau; xem database/README.md trước khi ánh xạ DAO.

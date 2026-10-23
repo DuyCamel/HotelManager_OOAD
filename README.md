@@ -63,3 +63,11 @@ Các bảng có tìm kiếm, phân trang, CSV và in. Hóa đơn có cửa sổ 
 **Mô phỏng hoặc chưa hoàn thiện:** SMS OTP, VietQR/webhook ngân hàng, SQL/JDBC, tính phí giờ/qua đêm và trả trễ, liên kết dịch vụ theo mã loại phòng, dịch vụ phát sinh, đặt nhiều phòng, xuất XLSX/PDF trực tiếp, logo/ảnh được sao chép vào kho quản lý. Giá demo đặt phòng tính theo ngày/đêm dựa vào `dailyPrice`; hai giá khác được lưu và hiển thị để triển khai sau. Xem [ma trận phạm vi](docs/TRACEABILITY.md).
 
 Chạy `bash scripts/test.sh` để biên dịch và kiểm tra tích hợp. Giao diện được kiểm tra riêng trên màn hình ảo khi phát triển.
+
+## SQL Server và cấu hình từng máy
+
+Đã có bộ 3 script tại [database](database/README.md): `001_create_database.sql`, `002_constraints_and_logic.sql`, `003_seed_demo_data.sql`. Chạy theo thứ tự trong SSMS để tạo 22 bảng, cài ràng buộc/nghiệp vụ và chèn dữ liệu giả (60 phòng, 120 khách, 240 phiếu đặt, 150 hóa đơn).
+
+Mỗi thành viên chạy `configure-db.bat`, sửa `config/database.properties`, thêm Microsoft JDBC JAR vào `lib/`, rồi chạy `check-db.bat` để kiểm tra kết nối. Hướng dẫn tạo login SQL, bật TCP/IP/cổng và quyền nằm trong `database/README.md`.
+
+Đường chạy Swing hiện vẫn dùng `FileHotelRepository`; utility kết nối SQL tách riêng để hoàn thiện JDBC sau. Không nhầm `Demo@123` của bảng tài khoản ứng dụng với mật khẩu login SQL trên từng máy.

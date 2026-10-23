@@ -5,3 +5,11 @@ data/
 .idea/
 .vscode/
 *.iml
+
+# Cấu hình/driver SQL Server riêng từng máy.
+config/database.properties
+lib/*.jar
+lib/*.dll
+*.bak
+*.mdf
+*.ldf

@@ -28,6 +28,9 @@ Mỗi file có chú thích trách nhiệm. Tìm file theo màn hình hoặc nghi
 | `backend/src/main/java/vn/hotel/dto/Session.java` | Phiên đăng nhập chỉ chứa dữ liệu an toàn cho frontend. |
 | `backend/src/main/java/vn/hotel/dto/TransferChallenge.java` | Yêu cầu OTP của bản demo; demoCode chỉ phục vụ mô phỏng, phải bỏ khi nối SMS thật. |
 | `backend/src/main/java/vn/hotel/exception/BusinessException.java` | Lỗi nghiệp vụ có thông báo tiếng Việt để giao diện hiển thị. |
+| `backend/src/main/java/vn/hotel/infrastructure/database/ConnectionFactory.java` | Mở JDBC SQL Server; utility này chưa thay repository file trong HotelBackend. |
+| `backend/src/main/java/vn/hotel/infrastructure/database/DatabaseConfig.java` | Đọc cấu hình riêng từng máy; không nhúng mật khẩu vào source hoặc log. |
+| `backend/src/main/java/vn/hotel/infrastructure/database/DatabaseConnectionCheck.java` | Kiểm tra kết nối thật bằng SELECT; không chạy seed, không ghi/xóa dữ liệu. |
 | `backend/src/main/java/vn/hotel/repository/FileHotelRepository.java` | Lưu file nguyên tử, khóa truy cập và copy trước thay đổi để lỗi không ghi nửa chừng. |
 | `backend/src/main/java/vn/hotel/repository/HotelData.java` | Trạng thái lưu trữ phiên bản demo; chỉ repository/service được truy cập. |
 | `backend/src/main/java/vn/hotel/repository/HotelRepository.java` | Cổng lưu trữ tách nghiệp vụ khỏi file; có thể thay bằng JDBC sau này. |
@@ -42,6 +45,7 @@ Mỗi file có chú thích trách nhiệm. Tìm file theo màn hình hoặc nghi
 | `backend/src/main/java/vn/hotel/service/ReportService.java` | Tổng hợp doanh thu theo ngày lập hóa đơn; không nhầm tiền cọc thành doanh thu. |
 | `backend/src/main/java/vn/hotel/service/Rules.java` | Quy tắc dùng chung: khoảng thời gian nửa mở, giá chốt, mã và nhật ký. |
 | `backend/src/test/java/vn/hotel/BackendWorkflowTest.java` | Kiểm thử tích hợp không cần JUnit: quyền, đặt trùng, checkout, lưu và khôi phục. |
+| `backend/src/test/java/vn/hotel/DatabaseConfigTest.java` | Kiểm thử cấu hình từng máy và bảo vệ bí mật, không cần SQL Server/driver. |
 | `frontend/src/main/java/vn/hotel/app/HotelApplication.java` | Điểm chạy ứng dụng desktop; có thể chọn file dữ liệu qua -Dhotel.data. |
 | `frontend/src/main/java/vn/hotel/controller/AppController.java` | Điều phối đăng nhập, phiên, màn hình và thông báo; không chứa quy tắc nghiệp vụ. |
 | `frontend/src/main/java/vn/hotel/ui/DataTable.java` | Bảng dữ liệu có tìm kiếm, phân trang, CSV và hộp thoại in của hệ điều hành. |
