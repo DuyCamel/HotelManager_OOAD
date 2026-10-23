@@ -1,0 +1,7 @@
+# Bỏ qua tệp biên dịch và dữ liệu chạy thử.
+build/
+data/
+*.class
+.idea/
+.vscode/
+*.iml
