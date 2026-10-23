@@ -4,7 +4,9 @@ data/
 *.class
 **/target/
 .idea/
-.vscode/
+/.vscode/*
+!/.vscode/launch.json
+!/.vscode/extensions.json
 *.iml
 # Cấu hình và driver riêng từng máy ở vị trí mới.
 backend/database/config/database.properties

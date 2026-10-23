@@ -4,6 +4,21 @@
 
 ![Giao diện tổng quan](docs/screenshots/overview.png)
 
+## Chạy ngay trong VS Code
+
+1. Cài **JDK 17 trở lên** cho dự án và tiện ích **Extension Pack for Java** của Microsoft trong VS Code. Nếu VS Code gợi ý cài tiện ích được đề xuất, chọn Install.
+2. Chọn **File → Open Folder**, mở đúng thư mục gốc `HotelManager_OOAD` có `pom.xml`, `backend`, `frontend` và `.vscode`. Không chỉ mở riêng một file Java hoặc thư mục frontend.
+3. Đợi Java tải/import xong các Maven project; lần đầu có thể cần Internet để tải thành phần phụ thuộc.
+4. Nhấn **F5**, hoặc mở **Run and Debug → Chạy HotelManager → nút tam giác xanh**. Giao diện đăng nhập Swing sẽ mở trong cửa sổ riêng.
+
+Cấu hình `.vscode/launch.json` đã chỉ định main class và module frontend, đồng thời đặt thư mục chạy về gốc repo để dữ liệu vẫn lưu ở `data/hotel.bin`. Không phải nhập lệnh hay mở batch để chạy từ VS Code.
+
+Có thể mở `frontend/src/main/java/vn/hotel/app/HotelApplication.java` rồi bấm **Run** ngay phía trên hàm `main`. Dùng nút Run của tiện ích Java, vì dự án có nhiều module phụ thuộc nhau.
+
+Nếu chưa thấy Java Projects hoặc có thông báo “project frontend not found”, kiểm tra đã mở đúng thư mục gốc, đợi import xong rồi dùng **Ctrl+Shift+P → Java: Import Java Projects in Workspace**. Nếu tiện ích yêu cầu JDK mới hơn cho language server, cài theo gợi ý của tiện ích; mã dự án vẫn đặt mức Java 17 trong pom.xml.
+
+Đăng nhập thử `admin` / `Demo@123`. Bản hiện tại mở UI với dữ liệu file; kết nối SQL Server được hướng dẫn riêng trong backend/database.
+
 ## Chạy trên Windows
 
 1. Cài **JDK 17 hoặc mới hơn**, kiểm tra `java -version` và `javac -version`.

@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Chạy HotelManager",
+      "request": "launch",
+      "mainClass": "vn.hotel.app.HotelApplication",
+      "projectName": "frontend",
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole",
+      "shortenCommandLine": "auto"
+    }
+  ]
+}
