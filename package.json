@@ -1,0 +1,26 @@
+{
+  "name": "hotelmanager-ooad-web",
+  "version": "2.0.0",
+  "private": true,
+  "description": "HotelManager web · Express, EJS, JavaScript và SQL Server",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "postinstall": "node scripts/setup-env.js",
+    "setup": "node scripts/setup-env.js",
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "db:check": "node scripts/check-db.js"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.9",
+    "ejs": "^7.0.2",
+    "express": "^5.3.0",
+    "express-session": "^1.19.0",
+    "helmet": "^8.3.0",
+    "mssql": "^12.7.11",
+    "multer": "^2.5.0"
+  }
+}

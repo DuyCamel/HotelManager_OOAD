@@ -6,7 +6,7 @@
    rollback và thử lại toàn bộ nghiệp vụ, không thử lại từng câu lệnh rời.
    Quyền/phiên/OTP do backend xác thực; các @ActorId không thay thế xác thực.
 */
-USE [HotelManager_OOAD];
+USE [HotelManager_OOAD_Web];
 GO
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -18,17 +18,15 @@ SET ARITHABORT ON;
 SET CONCAT_NULL_YIELDS_NULL ON;
 SET NUMERIC_ROUNDABORT OFF;
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.SchemaVersion WHERE VersionNo=1)
+IF NOT EXISTS (SELECT 1 FROM dbo.SchemaVersion WHERE VersionNo=10)
     THROW 51000, N'Phải chạy 001 trước.', 1;
-DELETE dbo.SchemaVersion WHERE VersionNo=2; -- Chỉ công bố lại sau khi xác minh toàn bộ object.
+DELETE dbo.SchemaVersion WHERE VersionNo=11; -- Chỉ công bố lại sau khi xác minh toàn bộ object.
 GO
 -- CHECK/FK được thêm trong một transaction; WITH CHECK kiểm tra cả dữ liệu đã có.
 BEGIN TRY
 BEGIN TRANSACTION;
 IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name=N'CK_Account_Role' AND parent_object_id=OBJECT_ID(N'dbo.Account'))
     ALTER TABLE dbo.[Account] WITH CHECK ADD CONSTRAINT [CK_Account_Role] CHECK (RoleCode IN ('ADMIN','MANAGER','RECEPTIONIST','HOUSEKEEPER','CUSTOMER'));
-IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name=N'CK_Account_Username' AND parent_object_id=OBJECT_ID(N'dbo.Account'))
-    ALTER TABLE dbo.[Account] WITH CHECK ADD CONSTRAINT [CK_Account_Username] CHECK (LEN(LTRIM(RTRIM(Username)))>0 AND DATALENGTH(Username)=DATALENGTH(LTRIM(RTRIM(Username))));
 IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name=N'CK_Account_Contact' AND parent_object_id=OBJECT_ID(N'dbo.Account'))
     ALTER TABLE dbo.[Account] WITH CHECK ADD CONSTRAINT [CK_Account_Contact] CHECK (LEN(FullName)>0 AND Email LIKE N'%_@_%._%' AND Phone NOT LIKE '%[^0-9+]%' AND LEN(Phone) BETWEEN 9 AND 15);
 IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name=N'CK_Account_Hash' AND parent_object_id=OBJECT_ID(N'dbo.Account'))
@@ -169,8 +167,6 @@ IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_BackupHistory_Crea
     ALTER TABLE dbo.[BackupHistory] WITH CHECK ADD CONSTRAINT [FK_BackupHistory_CreatedBy] FOREIGN KEY([CreatedBy]) REFERENCES dbo.[Account]([AccountId]);
 IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_AuditEvent_ActorId' AND parent_object_id=OBJECT_ID(N'dbo.AuditEvent'))
     ALTER TABLE dbo.[AuditEvent] WITH CHECK ADD CONSTRAINT [FK_AuditEvent_ActorId] FOREIGN KEY([ActorId]) REFERENCES dbo.[Account]([AccountId]);
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'UX_Account_Username' AND object_id=OBJECT_ID(N'dbo.Account'))
-    CREATE UNIQUE INDEX [UX_Account_Username] ON dbo.[Account](Username) ;
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'UX_Account_Email' AND object_id=OBJECT_ID(N'dbo.Account'))
     CREATE UNIQUE INDEX [UX_Account_Email] ON dbo.[Account](Email) ;
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'UX_Account_OneAdmin' AND object_id=OBJECT_ID(N'dbo.Account'))
@@ -402,7 +398,7 @@ BEGIN
     IF EXISTS(SELECT 1 FROM deleted) THROW 51123, N'Nhật ký chỉ ghi thêm, không sửa/xóa trực tiếp.', 1;
 END;
 GO
--- Giá ngày dùng cho bản Java hiện tại. Giá giờ/đêm lưu riêng, chưa tự suy đoán chính sách.
+-- Giá ngày dùng cho bản Node.js hiện tại. Giá giờ/đêm lưu riêng, chưa tự suy đoán chính sách.
 CREATE OR ALTER FUNCTION dbo.fn_QuoteRoom
 (@RoomId varchar(20), @StartAt datetime2(0), @EndAt datetime2(0))
 RETURNS decimal(18,2)
@@ -428,8 +424,8 @@ CREATE OR ALTER VIEW dbo.v_RoomBoard
 AS
 SELECT r.RoomId,r.Name,r.RoomTypeId,t.Name RoomTypeName,t.Capacity,t.DailyPrice,r.StatusCode,
        h.TaskId,h.CheckoutAt,h.DeadlineAt,
-       CASE WHEN h.StatusCode='OPEN' THEN DATEDIFF(MINUTE,SYSDATETIME(),h.DeadlineAt) END MinutesRemaining,
-       CONVERT(bit,CASE WHEN h.StatusCode='OPEN' AND h.DeadlineAt<SYSDATETIME() THEN 1 ELSE 0 END) IsOverdue
+       CASE WHEN h.StatusCode='OPEN' THEN DATEDIFF(MINUTE,SYSUTCDATETIME(),h.DeadlineAt) END MinutesRemaining,
+       CONVERT(bit,CASE WHEN h.StatusCode='OPEN' AND h.DeadlineAt<SYSUTCDATETIME() THEN 1 ELSE 0 END) IsOverdue
 FROM dbo.Room r JOIN dbo.RoomType t ON t.RoomTypeId=r.RoomTypeId
 LEFT JOIN dbo.HousekeepingTask h ON h.RoomId=r.RoomId AND h.StatusCode='OPEN';
 GO
@@ -462,7 +458,7 @@ BEGIN
       BEGIN TRANSACTION;
       UPDATE dbo.Booking SET StatusCode='CANCELLED'
         OUTPUT inserted.BookingId INTO @Expired(BookingId)
-      WHERE StatusCode='PENDING' AND DepositAmount=0 AND HoldUntil<SYSDATETIME();
+      WHERE StatusCode='PENDING' AND DepositAmount=0 AND HoldUntil<SYSUTCDATETIME();
       INSERT dbo.AuditEvent(ActorId,ActionName,ObjectType,ObjectId,Detail)
         SELECT NULL,N'Tự hủy phiếu quá hạn','BOOKING',BookingId,N'Chưa cọc, quá hạn giữ phòng' FROM @Expired;
       COMMIT TRANSACTION;
@@ -473,7 +469,7 @@ BEGIN
     END CATCH;
 END;
 GO
--- Ví dụ cổng ghi nhất quán để JDBC dùng sau; bên gọi phải xác thực phiên trước.
+-- Ví dụ cổng ghi nhất quán để node-mssql dùng sau; bên gọi phải xác thực phiên trước.
 CREATE OR ALTER PROCEDURE dbo.usp_CreateBooking
     @BookingId varchar(20),@CustomerId varchar(20),@RoomId varchar(20),
     @StartAt datetime2(0),@EndAt datetime2(0),@GuestCount int,
@@ -489,12 +485,12 @@ BEGIN
     IF @ChannelCode NOT IN ('ONLINE','COUNTER') OR @DepositAmount<0 OR
        (@ChannelCode='ONLINE' AND @DepositAmount<>0) OR (@ChannelCode='COUNTER' AND @DepositAmount<=0)
         THROW 51203,N'Đặt online chưa ghi cọc; đặt tại quầy cần cọc dương.',1;
-    IF @StartAt<DATEADD(MINUTE,-5,SYSDATETIME()) OR @EndAt<=@StartAt
+    IF @StartAt<DATEADD(MINUTE,-5,SYSUTCDATETIME()) OR @EndAt<=@StartAt
         THROW 51204,N'Thời gian nhận/trả không hợp lệ.',1;
     EXEC dbo.usp_ExpireUnpaidBookings;
     BEGIN TRY
       BEGIN TRANSACTION;
-      DECLARE @LockRoom varchar(20),@Price decimal(18,2),@Now datetime2(0)=SYSDATETIME();
+      DECLARE @LockRoom varchar(20),@Price decimal(18,2),@Now datetime2(0)=SYSUTCDATETIME();
       SELECT @LockRoom=RoomId FROM dbo.Room WITH(UPDLOCK,HOLDLOCK) WHERE RoomId=@RoomId;
       SET @Price=dbo.fn_QuoteRoom(@RoomId,@StartAt,@EndAt);
       IF @LockRoom IS NULL OR @Price IS NULL THROW 51205,N'Không có phòng hoặc không tính được giá.',1;
@@ -524,7 +520,7 @@ BEGIN
    THROW 51206,N'Không có quyền xác nhận cọc.',1;
  BEGIN TRY
   BEGIN TRANSACTION;
-  IF NOT EXISTS(SELECT 1 FROM dbo.Booking WITH(UPDLOCK,HOLDLOCK) WHERE BookingId=@BookingId AND StatusCode='PENDING' AND HoldUntil>=SYSDATETIME())
+  IF NOT EXISTS(SELECT 1 FROM dbo.Booking WITH(UPDLOCK,HOLDLOCK) WHERE BookingId=@BookingId AND StatusCode='PENDING' AND HoldUntil>=SYSUTCDATETIME())
     THROW 51207,N'Phiếu không còn chờ cọc hoặc đã quá hạn.',1;
   UPDATE dbo.Booking SET DepositAmount=@Amount,StatusCode='CONFIRMED' WHERE BookingId=@BookingId;
   INSERT dbo.Payment(PaymentId,BookingId,PaymentKind,Amount,MethodCode,ExternalReference,CreatedBy)
@@ -547,7 +543,7 @@ BEGIN
    THROW 51208,N'Không có quyền nhận phòng.',1;
  BEGIN TRY
   BEGIN TRANSACTION;
-  DECLARE @RoomId varchar(20),@Charge decimal(18,2),@Now datetime2(0)=SYSDATETIME();
+  DECLARE @RoomId varchar(20),@Charge decimal(18,2),@Now datetime2(0)=SYSUTCDATETIME();
   SELECT @RoomId=RoomId,@Charge=RoomCharge FROM dbo.Booking WITH(UPDLOCK,HOLDLOCK)
    WHERE BookingId=@BookingId AND StatusCode='CONFIRMED' AND @Now>=StartAt AND @Now<EndAt;
   IF @RoomId IS NULL THROW 51209,N'Phiếu chưa xác nhận hoặc chưa trong thời gian nhận phòng.',1;
@@ -577,18 +573,25 @@ BEGIN
    THROW 51211,N'Không có quyền trả phòng.',1;
  BEGIN TRY
   BEGIN TRANSACTION;
-  DECLARE @BookingId varchar(20),@RoomId varchar(20),@CustomerId varchar(20),@Charge decimal(18,2),@Extra decimal(18,2),@Deposit decimal(18,2),@Due decimal(18,2),@Now datetime2(0)=SYSDATETIME();
+  DECLARE @BookingId varchar(20),@RoomId varchar(20),@CustomerId varchar(20),@Charge decimal(18,2),@Extra decimal(18,2),@Deposit decimal(18,2),@Due decimal(18,2),@Now datetime2(0)=SYSUTCDATETIME();
   SELECT @BookingId=s.BookingId,@RoomId=s.RoomId,@Charge=s.RoomCharge,@Extra=s.Surcharge,@CustomerId=b.CustomerId,@Deposit=b.DepositAmount
     FROM dbo.Stay s WITH(UPDLOCK,HOLDLOCK) JOIN dbo.Booking b WITH(UPDLOCK,HOLDLOCK) ON b.BookingId=s.BookingId
     WHERE s.StayId=@StayId AND s.CheckOutAt IS NULL;
   IF @BookingId IS NULL THROW 51212,N'Phiếu thuê không còn đang lưu trú.',1;
-  SET @Due=@Charge+@Extra-@Deposit;
+  DECLARE @Service decimal(18,2);
+  SELECT @Service=ISNULL(SUM(Quantity*UnitPrice),0) FROM dbo.ServiceUsage WITH(UPDLOCK,HOLDLOCK) WHERE StayId=@StayId AND IsVoided=0 AND InvoiceId IS NULL;
+  SET @Due=@Charge+@Extra+@Service-@Deposit;
   IF @ExpectedAmount IS NULL OR @Due<>@ExpectedAmount THROW 51213,N'Bảng kê đã thay đổi, phải đối chiếu lại trước thu tiền.',1;
-  -- Nghiệp vụ Java hiện tại chưa nhập dịch vụ phát sinh/giảm giá. Schema vẫn hỗ trợ dòng dịch vụ.
-  INSERT dbo.Invoice(InvoiceId,StayId,CustomerId,IssuedAt,RoomCharge,Surcharge,DepositAmount,PaymentMethod,CreatedBy)
-    VALUES(@InvoiceId,@StayId,@CustomerId,@Now,@Charge,@Extra,@Deposit,@MethodCode,@ActorId);
+  -- Ghi dịch vụ cùng transaction với hóa đơn, thanh toán, điểm thẻ và trả phòng.
+  INSERT dbo.Invoice(InvoiceId,StayId,CustomerId,IssuedAt,RoomCharge,ServiceCharge,Surcharge,DepositAmount,PaymentMethod,CreatedBy)
+    VALUES(@InvoiceId,@StayId,@CustomerId,@Now,@Charge,@Service,@Extra,@Deposit,@MethodCode,@ActorId);
   INSERT dbo.InvoiceLine(InvoiceId,LineType,Description,Quantity,UnitPrice) VALUES(@InvoiceId,'ROOM',N'Tiền lưu trú',1,@Charge);
   IF @Extra>0 INSERT dbo.InvoiceLine(InvoiceId,LineType,Description,Quantity,UnitPrice) VALUES(@InvoiceId,'SURCHARGE',N'Phụ thu đổi phòng',1,@Extra);
+  INSERT dbo.InvoiceLine(InvoiceId,LineType,ServiceId,Description,Quantity,UnitPrice)
+    SELECT @InvoiceId,'SERVICE',u.ServiceId,s.Name,u.Quantity,u.UnitPrice
+    FROM dbo.ServiceUsage u JOIN dbo.HotelService s ON s.ServiceId=u.ServiceId
+    WHERE u.StayId=@StayId AND u.IsVoided=0 AND u.InvoiceId IS NULL;
+  UPDATE dbo.ServiceUsage SET InvoiceId=@InvoiceId WHERE StayId=@StayId AND IsVoided=0 AND InvoiceId IS NULL;
   INSERT dbo.Payment(PaymentId,InvoiceId,PaymentKind,Amount,MethodCode,CreatedBy) VALUES(@PaymentId,@InvoiceId,'SETTLEMENT',@Due,@MethodCode,@ActorId);
   UPDATE dbo.Invoice SET StatusCode='PAID' WHERE InvoiceId=@InvoiceId;
   UPDATE dbo.Stay SET CheckOutAt=@Now WHERE StayId=@StayId;
@@ -616,7 +619,7 @@ BEGIN
    THROW 51214,N'Không có quyền đổi phòng.',1;
  BEGIN TRY
   BEGIN TRANSACTION;
-  DECLARE @BookingId varchar(20),@OldRoomId varchar(20),@EndAt datetime2(0),@Now datetime2(0)=SYSDATETIME(),@Extra decimal(18,2);
+  DECLARE @BookingId varchar(20),@OldRoomId varchar(20),@EndAt datetime2(0),@Now datetime2(0)=SYSUTCDATETIME(),@Extra decimal(18,2);
   SELECT @BookingId=s.BookingId,@OldRoomId=s.RoomId,@EndAt=b.EndAt
     FROM dbo.Stay s WITH(UPDLOCK,HOLDLOCK) JOIN dbo.Booking b WITH(UPDLOCK,HOLDLOCK) ON b.BookingId=s.BookingId
     WHERE s.StayId=@StayId AND s.CheckOutAt IS NULL;
@@ -652,7 +655,7 @@ BEGIN
   BEGIN TRANSACTION;
   IF NOT EXISTS(SELECT 1 FROM dbo.Room WITH(UPDLOCK,HOLDLOCK) WHERE RoomId=@RoomId AND StatusCode IN ('DIRTY','MAINTENANCE'))
     THROW 51218,N'Phòng không cần dọn/bảo trì.',1;
-  UPDATE dbo.HousekeepingTask SET StatusCode='DONE',CompletedAt=SYSDATETIME() WHERE RoomId=@RoomId AND StatusCode IN ('OPEN','MAINTENANCE');
+  UPDATE dbo.HousekeepingTask SET StatusCode='DONE',CompletedAt=SYSUTCDATETIME() WHERE RoomId=@RoomId AND StatusCode IN ('OPEN','MAINTENANCE');
   UPDATE dbo.Room SET StatusCode='AVAILABLE' WHERE RoomId=@RoomId;
   INSERT dbo.AuditEvent(ActorId,ActionName,ObjectType,ObjectId,Detail) VALUES(@ActorId,N'Dọn phòng hoàn tất','ROOM',@RoomId,N'Đã sẵn sàng');
   COMMIT TRANSACTION;
@@ -678,8 +681,8 @@ BEGIN
   IF NOT EXISTS(SELECT 1 FROM dbo.Account WITH(UPDLOCK,HOLDLOCK) WHERE AccountId=@TargetManagerId AND RoleCode='MANAGER' AND IsActive=1)
     THROW 51221,N'Người nhận phải là Quản lý đang hoạt động.',1;
   -- Hai UPDATE trong cùng transaction để không vướng chỉ mục UNIQUE một Admin.
-  UPDATE dbo.Account SET RoleCode='MANAGER' WHERE AccountId=@CurrentAdminId;
-  UPDATE dbo.Account SET RoleCode='ADMIN' WHERE AccountId=@TargetManagerId;
+  UPDATE dbo.Account SET RoleCode='MANAGER',AuthVersion=AuthVersion+1 WHERE AccountId=@CurrentAdminId;
+  UPDATE dbo.Account SET RoleCode='ADMIN',AuthVersion=AuthVersion+1 WHERE AccountId=@TargetManagerId;
   INSERT dbo.AuditEvent(ActorId,ActionName,ObjectType,ObjectId,Detail) VALUES(@CurrentAdminId,N'Chuyển quyền Admin','ACCOUNT',@TargetManagerId,N'Backend chịu trách nhiệm OTP/thu hồi phiên');
   COMMIT TRANSACTION;
  END TRY
@@ -744,7 +747,6 @@ IF EXISTS(SELECT 1 FROM (VALUES
  THROW 51001,N'002 còn thiếu trigger/function/view/procedure. Kiểm tra lỗi batch trước.',1;
 IF EXISTS(SELECT 1 FROM (VALUES
 (N'CK_Account_Role'),
-(N'CK_Account_Username'),
 (N'CK_Account_Contact'),
 (N'CK_Account_Hash'),
 (N'CK_Customer_NamePhone'),
@@ -821,7 +823,6 @@ IF EXISTS(SELECT 1 FROM sys.check_constraints WHERE schema_id=SCHEMA_ID(N'dbo') 
  OR EXISTS(SELECT 1 FROM sys.triggers WHERE parent_class=1 AND is_disabled=1)
  THROW 51003,N'Có ràng buộc/trigger chưa bật hoặc chưa kiểm chứng dữ liệu.',1;
 IF EXISTS(SELECT 1 FROM (VALUES
-(N'UX_Account_Username',N'dbo.Account'),
 (N'UX_Account_Email',N'dbo.Account'),
 (N'UX_Account_OneAdmin',N'dbo.Account'),
 (N'UX_Customer_Identity',N'dbo.Customer'),
@@ -848,6 +849,40 @@ IF EXISTS(SELECT 1 FROM (VALUES
 (N'IX_Audit_Object',N'dbo.AuditEvent')) required(Name,TableName)
  WHERE NOT EXISTS(SELECT 1 FROM sys.indexes i WHERE i.name=required.Name AND i.object_id=OBJECT_ID(required.TableName) AND i.is_disabled=0))
  THROW 51004,N'002 chưa đủ chỉ mục nghiệp vụ.',1;
-IF NOT EXISTS(SELECT 1 FROM dbo.SchemaVersion WHERE VersionNo=2) INSERT dbo.SchemaVersion(VersionNo) VALUES(2);
+-- Ràng buộc bổ sung cho web; cài trước khi công bố schema 11.
+IF NOT EXISTS(SELECT 1 FROM sys.check_constraints WHERE name='CK_Account_AuthVersion')
+ ALTER TABLE dbo.Account ADD CONSTRAINT CK_Account_AuthVersion CHECK(AuthVersion>=0);
+IF NOT EXISTS(SELECT 1 FROM sys.check_constraints WHERE name='CK_Usage_Amounts')
+ ALTER TABLE dbo.ServiceUsage ADD CONSTRAINT CK_Usage_Amounts CHECK(Quantity>0 AND UnitPrice>0 AND (IsVoided=0 OR InvoiceId IS NULL));
+IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name='FK_Usage_Stay')
+ ALTER TABLE dbo.ServiceUsage ADD CONSTRAINT FK_Usage_Stay FOREIGN KEY(StayId) REFERENCES dbo.Stay(StayId);
+IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name='FK_Usage_Service')
+ ALTER TABLE dbo.ServiceUsage ADD CONSTRAINT FK_Usage_Service FOREIGN KEY(ServiceId) REFERENCES dbo.HotelService(ServiceId);
+IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name='FK_Usage_Actor')
+ ALTER TABLE dbo.ServiceUsage ADD CONSTRAINT FK_Usage_Actor FOREIGN KEY(RecordedBy) REFERENCES dbo.Account(AccountId);
+IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name='FK_Usage_Invoice')
+ ALTER TABLE dbo.ServiceUsage ADD CONSTRAINT FK_Usage_Invoice FOREIGN KEY(InvoiceId) REFERENCES dbo.Invoice(InvoiceId);
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name='IX_Usage_Stay' AND object_id=OBJECT_ID('dbo.ServiceUsage'))
+ CREATE INDEX IX_Usage_Stay ON dbo.ServiceUsage(StayId,IsVoided) INCLUDE(Quantity,UnitPrice,InvoiceId);
+GO
+CREATE OR ALTER TRIGGER dbo.trg_Usage_Validate ON dbo.ServiceUsage AFTER INSERT,UPDATE,DELETE AS
+BEGIN
+ SET NOCOUNT ON;
+ IF EXISTS(SELECT 1 FROM deleted d JOIN dbo.Stay s ON s.StayId=d.StayId WHERE d.InvoiceId IS NOT NULL OR s.CheckOutAt IS NOT NULL)
+  THROW 51401,N'Không sửa/xóa dịch vụ đã lên hóa đơn hoặc phiếu thuê đã kết thúc.',1;
+ IF EXISTS(SELECT 1 FROM inserted i JOIN dbo.Stay s ON s.StayId=i.StayId WHERE s.CheckOutAt IS NOT NULL)
+  THROW 51402,N'Chỉ ghi dịch vụ trên phiếu thuê đang lưu trú.',1;
+ IF EXISTS(SELECT 1 FROM inserted i JOIN dbo.Invoice h ON h.InvoiceId=i.InvoiceId WHERE h.StayId<>i.StayId OR h.StatusCode<>'DRAFT')
+  THROW 51403,N'Dịch vụ phải thuộc đúng hóa đơn nháp của phiếu thuê.',1;
+ IF EXISTS(SELECT 1 FROM inserted i LEFT JOIN deleted d ON d.UsageId=i.UsageId JOIN dbo.Account a ON a.AccountId=i.RecordedBy WHERE (d.UsageId IS NULL OR d.RecordedBy<>i.RecordedBy) AND (a.IsActive=0 OR a.RoleCode NOT IN('ADMIN','MANAGER','RECEPTIONIST')))
+  THROW 51404,N'Người ghi dịch vụ không có quyền.',1;
+END;
+GO
+-- Không công bố schema nếu các batch web còn thiếu object.
+IF OBJECT_ID(N'dbo.trg_Usage_Validate',N'TR') IS NULL
+ OR EXISTS(SELECT 1 FROM(VALUES('CK_Account_AuthVersion'),('CK_Usage_Amounts'))v(Name) WHERE NOT EXISTS(SELECT 1 FROM sys.check_constraints c WHERE c.name=v.Name AND c.is_disabled=0 AND c.is_not_trusted=0))
+ OR EXISTS(SELECT 1 FROM(VALUES('FK_Usage_Stay'),('FK_Usage_Service'),('FK_Usage_Actor'),('FK_Usage_Invoice'))v(Name) WHERE NOT EXISTS(SELECT 1 FROM sys.foreign_keys f WHERE f.name=v.Name AND f.is_disabled=0 AND f.is_not_trusted=0))
+ THROW 51405,N'Chưa cài đầy đủ ràng buộc web. Kiểm tra lỗi các batch trước.',1;
+IF NOT EXISTS(SELECT 1 FROM dbo.SchemaVersion WHERE VersionNo=11) INSERT dbo.SchemaVersion(VersionNo) VALUES(11);
 PRINT N'002 hoàn tất. Kiểm tra không có lỗi đỏ ở các batch trước rồi chạy 003_seed_demo_data.sql.';
 GO

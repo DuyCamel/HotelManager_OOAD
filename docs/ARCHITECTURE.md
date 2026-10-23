@@ -1,43 +1,31 @@
-# Kiến trúc Java Desktop
+# Kiến trúc và quy ước
 
-Frontend và backend là **hai module mã nguồn**, chạy trong cùng tiến trình JVM. Đây là tách lớp desktop, chưa phải client/server HTTP. Backend không import Swing hoặc package frontend. Frontend gọi service thông qua đối tượng `HotelBackend`; không mở file hay gọi repository nghiệp vụ trực tiếp.
+HTTP → routes/controller → service → repository → SQL Server hoặc JSON demo. Frontend không truy cập database hay giữ mật khẩu kết nối. Controller ánh xạ danh sách command cố định; service kiểm tra vai trò, dữ liệu, trạng thái và thực hiện transaction. Database adapter chỉ chịu trách nhiệm lưu/đọc và ánh xạ kiểu.
 
-Luồng xử lý: sự kiện Swing → màn hình/controller → service → repository → dữ liệu file. DTO chỉ truyền kết quả cần thiết, tài khoản phía UI không có passwordHash.
+- `backend/database/`: sửa schema, ràng buộc SQL, kết nối hoặc adapter ở đây.
+- `backend/service/`: sửa nghiệp vụ tại đây; không import Express, không dựa vào việc nút có bị ẩn trên UI hay không.
+- `frontend/views/`: HTML server-render với EJS escaping. `frontend/public/js/workspace.js` tạo form/bảng/sơ đồ và gọi `/api/action/<command>`; thông tin đưa vào HTML được escape.
+- `backend/shared/permissions.js`: danh sách quyền dùng chung ở server. Không lấy role hoặc accountId người thực hiện từ request body; lấy từ session đã kiểm tra lại với account hiện tại.
 
-## Trách nhiệm
+Ghi nghiệp vụ SQL chạy transaction SERIALIZABLE và application lock `HotelManager.WebWrite`, input tham số hóa, không ghép dữ liệu người dùng vào tên bảng/cột. JSON demo dùng hàng đợi ghi, clone trạng thái và rename file nguyên tử. Không chạy nhiều Node process cùng ghi một file demo.
 
-- `domain`: record bất biến mô tả dữ liệu; enum mô tả trạng thái. Tiền dùng `long` theo đồng Việt Nam.
-- `service`: kiểm tra quyền, dữ liệu và điều kiện chuyển trạng thái trước ghi; không đặt quy tắc chỉ trong nút UI.
-- `security`: PBKDF2 có salt, phiên trong bộ nhớ và thu hồi khi khóa/đổi vai trò/khôi phục.
-- `repository`: đồng bộ trong một tiến trình, sao chép dữ liệu trước khi xử lý, ghi tệp tạm rồi đổi tên. Lỗi nghiệp vụ hoặc ghi file không làm commit thay đổi nửa chừng.
-- `view`: mỗi màn hình một file, dùng chung DataTable/Forms. Swing là frontend; không phải trang web công khai.
+Phiếu: `PENDING → CONFIRMED → CHECKED_IN → COMPLETED`; `PENDING → CANCELLED` khi người dùng hủy hoặc hết hạn giữ chỗ chưa cọc. Hóa đơn: tạo DRAFT, thêm dòng, thêm chứng từ, xác nhận PAID, cộng điểm, đóng phiếu thuê và chuyển phòng DIRTY trong cùng transaction. SQL trigger kiểm tra tổng dòng/thanh toán/sổ điểm và ngăn sửa chứng từ đã chốt.
 
-`HotelData` dùng map và Java serialization cho demo, có bộ lọc lớp khi đọc. Không mở bản sao không tin cậy. Cổng `HotelRepository` là nơi thay bằng JDBC. Cần thiết kế lại transaction/query theo DB khi triển khai thật; cổng này hiện dùng callback trên snapshot, chưa tối ưu dữ liệu lớn.
+Thời gian lưu UTC; hiển thị mặc định Asia/Ho_Chi_Minh. Bộ chọn datetime-local được đổi sang ISO UTC trước khi gửi. Chính sách giá hiện dùng số ngày UTC của khoảng lưu trú, tối thiểu 1 ngày, cộng giá lễ theo từng ngày UTC. `APP_TIME_ZONE` đang là cấu hình định hướng; giao diện hiện cố định Asia/Ho_Chi_Minh, chưa hỗ trợ đổi múi giờ từ UI.
 
-## Đối chiếu sơ đồ lớp
+HTTP ghi yêu cầu CSRF token lấy từ meta tag, cookie HttpOnly/SameSite Lax. Mật khẩu băm PBKDF2 SHA256 120.000 vòng, salt ngẫu nhiên cho tài khoản tạo mới. Sau đăng nhập session được regenerate. Khóa/đổi quyền/đổi mật khẩu tăng AuthVersion; request kế tiếp kết thúc phiên cũ. Production bị chặn cho tới khi bổ sung session store phù hợp và OTP thật.
 
-Dùng tài liệu vừa đính kèm làm nguồn hiện hành, giữ thẻ thành viên, cấu hình, sao lưu và thiệt hại trong phạm vi giao diện. Không tự bỏ theo thảo luận cũ. Vai trò code là enum phục vụ kiểm soát quyền, không coi là bổ sung lớp Quyền vào sơ đồ phân tích. Các lớp Admin/Quản lý/Lễ tân trong mô hình phân tích được ánh xạ thành vai trò của Account trong bản demo; chưa mô phỏng kế thừa từng loại nhân viên.
+Ảnh báo hỏng giới hạn 3 MB, một file, kiểm tra chữ ký PNG/JPEG, tên UUID do server sinh, không phục vụ `data/` như thư mục public. Chỉ người có quyền sơ đồ truy cập ảnh đã gắn báo hỏng. Không ghi password/hash vào API workspace, CSV hay log.
 
-Một Booking và một Stay hiện quản lý một phòng. Chi tiết phiếu thuê và thông tin phòng được gộp vào aggregate Stay để chạy mẫu; đây là quyết định triển khai rút gọn, **chưa ánh xạ một-một toàn bộ lớp trên PDF**. Nên thống nhất lại mô hình trước khi tạo ERD/JDBC chính thức. Khi cần đặt nhiều phòng, phải thêm BookingLine/StayDetail và kiểm tra đồng thời cả tập phòng, không sao chép luồng một phòng rồi bỏ kiểm tra cuối.
+## Thao tác nghiệm thu thủ công
 
-## Quy tắc đang chạy
+1. Chạy demo, đăng nhập từng email mẫu; kiểm tra menu của Quản lý/Nhân viên/Buồng phòng và thử URL API trái quyền (phải từ chối).
+2. Admin tạo/sửa danh mục; thêm khách và cấp thẻ. Nhân viên tạo phiếu tại quầy với giờ nhận hiện tại và cọc nhỏ hơn tiền phòng.
+3. Nhận phòng bằng giấy tờ, ghi dịch vụ, đổi giá danh mục sau đó để kiểm tra dòng phát sinh vẫn giữ giá cũ. Thử hủy một dòng dịch vụ chưa lên hóa đơn.
+4. Trả phòng, đối chiếu bảng kê, xem/in hóa đơn, kiểm tra điểm và phòng Cần dọn. Thử trả lần hai (phải từ chối).
+5. Buồng phòng vào sơ đồ, xác nhận dọn và báo hỏng với ảnh; thử ảnh sai định dạng hoặc quá kích thước.
+6. Khách đăng ký bằng email mới, tìm phòng, giữ online và xem phiếu của mình; thử truy cập hóa đơn khách khác (không được).
+7. Admin khóa/đổi vai trò nhân viên đang đăng nhập ở trình duyệt khác; request sau của phiên cũ phải bị từ chối. Chuyển Admin bằng OTP demo và kiểm tra cả hai phiên phải đăng nhập lại.
+8. Sau khi cấu hình SQL Server thật, lặp lại các luồng; kiểm tra tiền, điểm, lịch trùng và sao lưu trên đúng máy SQL.
 
-Khoảng lưu trú là [nhận, trả), cho phép hai phiếu tiếp nối tại cùng mốc. Phiếu chờ xác nhận chưa cọc giữ 30 phút; hết hạn tự hủy khi tìm/đọc/tác vụ timer hoạt động. Khi app đóng không có máy chủ chạy ngầm; lần mở sau kiểm tra lại. Phòng bảo trì/ngừng hoạt động không được đặt. Phòng cần dọn có thể đặt cho tương lai nhưng không check-in đến khi sạch.
-
-Đặt online tạo PENDING, xác nhận cọc thủ công chuyển CONFIRMED. Nhận phòng chỉ khi đã xác nhận, đúng khoảng thời gian và phòng sạch. Phiếu demo có ngày nhận trong hiện tại để thử ngay. Đặt tại quầy cần tiền cọc dương. Hủy phiếu đã cọc bị chặn vì chưa chốt chính sách hoàn cọc.
-
-Checkout lấy bảng kê từ dữ liệu backend, kiểm tra lại số phải thu, tạo hóa đơn và giao dịch, đóng lưu trú, chuyển Cần dọn cùng một lần ghi. Thẻ đang hoạt động được cộng tổng giá trị hóa đơn / 10.000 điểm, không cộng tay; các ngưỡng 100/500/1.000 là cấu hình demo trong code. In lại chỉ đọc hóa đơn.
-
-Đổi phòng kiểm tra khả dụng và sạch, cộng chênh lệch giá còn lại nếu dương; phòng cũ chuyển Cần dọn. Giá đổi phòng và ngày lẻ là chính sách tạm cho chạy thử, cần chốt trước sản phẩm thật.
-
-## Giới hạn vận hành
-
-Một tiến trình, một file dữ liệu. Chưa có xác minh số điện thoại thật, OTP SMS thật, callback thanh toán thật, HTTPS, phân quyền nhiều chi nhánh, lịch tác vụ máy chủ và locking nhiều client. Không dùng bản demo làm ứng dụng vận hành thật. Mặc định nhận 14:00/trả 12:00; form đặt mới đọc giờ từ cấu hình. Mốc phụ thu trả trễ được lưu để duyệt UI nhưng chưa đưa vào phép tính checkout. Công suất trong báo cáo là phút lưu trú thực tế / (số phòng đang hoạt động × số phút trong khoảng ngày), chưa theo lịch sử đóng/mở phòng. Tỷ lệ hủy lấy phiếu có ngày nhận dự kiến thuộc khoảng chọn.
-
-## Gói chuẩn bị JDBC SQL Server
-
-`infrastructure/database` cung cấp DatabaseConfig, ConnectionFactory và DatabaseConnectionCheck. Chúng đọc cấu hình từng máy, khởi tạo SET options cần cho chỉ mục lọc/cột tính toán và thực hiện kiểm tra SELECT. Chưa thay `FileHotelRepository` tại HotelBackend. Schema SQL gồm 22 bảng, có bảng trung gian dịch vụ, chi tiết hóa đơn, sổ điểm và lịch sử đổi phòng để triển khai persistence sau; xem backend/database/README.md trước khi ánh xạ DAO.
-
-## Thư mục làm việc sau khi tách
-
-Backend là Maven aggregator gồm `common`, `database` và `service`. SQL/cấu hình/driver/JDBC/repository cùng ở `backend/database`; nghiệp vụ và HotelBackend ở `backend/service`. Common không phụ thuộc hai phần còn lại; database phụ thuộc common, service phụ thuộc database/common, frontend phụ thuộc service. Build script biên dịch đúng thứ tự để phát hiện phụ thuộc ngược. Package Java và các class lưu trong dữ liệu serialization được giữ nguyên. Hướng dẫn kết nối cho thành viên mới: `backend/database/HUONG_DAN_KET_NOI.md`.
+Không lưu test tự động trong repo theo yêu cầu. Mọi kiểm tra phát triển tạm thời nằm ngoài mã nguồn.

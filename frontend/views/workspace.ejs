@@ -1,0 +1,98 @@
+<!-- Khung workspace và menu lọc theo vai trò; nội dung do workspace.js dựng. -->
+<%- include('partials/head') %>
+<body class="workspace" data-role="<%= user.role %>" data-user-id="<%= user.id %>">
+<aside class="sidebar">
+<a class="brand" href="/">A<span>✦</span> AURORA</a>
+<span class="sidebar-caption">HOTEL WORKSPACE</span>
+<nav id="side-nav">
+<% const items=[['overview','◈','Tổng quan','reports'],['board','▦','Sơ đồ phòng','board'],['bookings','▤','Đặt phòng','bookings'],['stays','⇄','Nhận & trả phòng','stays'],['customers','♙','Khách hàng','customers'],['usage','♧','Dịch vụ sử dụng','usage'],['cards','◇','Thẻ thành viên','cards'],['invoices','▧','Hóa đơn','invoices'],['catalog','▥','Phòng & danh mục','catalog'],['accounts','♟','Tài khoản','accounts'],['reports','↗','Báo cáo','reports'],['system','⚙','Hệ thống','admin']];items.forEach(([id,icon,title,permission])=>{if(has(permission)){ %>
+<button data-page="<%= id %>">
+<span>
+<%= icon %>
+</span>
+<%= title %>
+</button>
+<% }});if(user.role==='CUSTOMER'){ %>
+<button data-page="search">
+<span>⌕</span>Tìm & đặt phòng</button>
+<button data-page="mybookings">
+<span>▤</span>Đặt phòng của tôi</button>
+<button data-page="invoices">
+<span>▧</span>Hóa đơn của tôi</button>
+<button data-page="mycard">
+<span>◇</span>Thẻ của tôi</button>
+<% } %>
+<button data-page="profile">
+<span>○</span>Hồ sơ cá nhân</button>
+</nav>
+<div class="sidebar-bottom">
+<span class="mode-dot">
+</span> <%= config.mode==='demo'?'Dữ liệu demo':'SQL Server' %>
+<small>AURORA · HOSPITALITY OS</small>
+</div>
+</aside>
+<div class="workspace-main">
+<header class="topbar">
+<button id="menu-toggle" aria-label="Mở menu">☰</button>
+<div class="breadcrumb">Không gian làm việc <span>/</span> <b id="crumb">Sơ đồ phòng</b>
+</div>
+<div class="user-menu">
+<div class="avatar">
+<%= user.name.slice(0,1) %>
+</div>
+<div>
+<strong>
+<%= user.name %>
+</strong>
+<small>
+<%= labels[user.role] %>
+</small>
+</div>
+<button class="icon-button" id="logout" title="Đăng xuất">↪</button>
+</div>
+</header>
+<main class="content">
+<div class="page-heading">
+<div>
+<span class="eyebrow">AURORA HOTEL</span>
+<h1 id="page-title">Không gian làm việc</h1>
+<p class="muted" id="page-description">
+</p>
+</div>
+<div id="page-actions">
+</div>
+</div>
+<div id="page-content">
+<p class="empty">Đang tải dữ liệu…</p>
+</div>
+</main>
+<footer class="workspace-footer">© 2026 Aurora Hotel <span id="today">
+</span>
+</footer>
+</div>
+<dialog id="editor">
+<form id="editor-form">
+<div class="dialog-head">
+<div>
+<span class="eyebrow">AURORA WORKSPACE</span>
+<h2 id="dialog-title">
+</h2>
+</div>
+<button type="button" class="icon-button" data-close>×</button>
+</div>
+<div id="dialog-fields" class="form-grid">
+</div>
+<p class="form-message" role="status">
+</p>
+<div class="dialog-actions">
+<button type="button" data-close>Hủy</button>
+<button class="primary">Lưu thay đổi</button>
+</div>
+</form>
+</dialog>
+<div id="toast" role="status">
+</div>
+<script src="/assets/js/workspace.js" defer>
+</script>
+</body>
+</html>

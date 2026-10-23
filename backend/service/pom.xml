@@ -1,7 +1,0 @@
-<!-- Module service: ownership rõ theo thư mục backend. -->
-<project xmlns="http://maven.apache.org/POM/4.0.0">
-  <modelVersion>4.0.0</modelVersion>
-  <parent><groupId>vn.hotel</groupId><artifactId>backend</artifactId><version>1.0.0</version></parent>
-  <artifactId>backend-service</artifactId>
-  <dependencies><dependency><groupId>vn.hotel</groupId><artifactId>backend-common</artifactId><version>${project.version}</version></dependency><dependency><groupId>vn.hotel</groupId><artifactId>backend-database</artifactId><version>${project.version}</version></dependency></dependencies>
-</project>

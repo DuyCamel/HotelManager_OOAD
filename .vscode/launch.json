@@ -2,14 +2,14 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "java",
-      "name": "Chạy HotelManager",
+      "type": "node",
       "request": "launch",
-      "mainClass": "vn.hotel.app.HotelApplication",
-      "projectName": "frontend",
+      "name": "Hotel Web — F5",
+      "program": "${workspaceFolder}/server.js",
       "cwd": "${workspaceFolder}",
-      "console": "internalConsole",
-      "shortenCommandLine": "auto"
+      "envFile": "${workspaceFolder}/.env",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
     }
   ]
 }

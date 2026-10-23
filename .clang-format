@@ -1,5 +1,0 @@
-# Định dạng Java dễ đọc; dùng clang-format 18 nếu cần định dạng lại.
-BasedOnStyle: Google
-Language: Java
-ColumnLimit: 110
-IndentWidth: 4

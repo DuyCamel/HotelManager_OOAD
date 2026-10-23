@@ -1,7 +1,0 @@
-<!-- Chỉ tổng hợp ba module backend, không chứa mã Java riêng. -->
-<project xmlns="http://maven.apache.org/POM/4.0.0">
-  <modelVersion>4.0.0</modelVersion>
-  <parent><groupId>vn.hotel</groupId><artifactId>hotel-manager</artifactId><version>1.0.0</version></parent>
-  <artifactId>backend</artifactId><packaging>pom</packaging>
-  <modules><module>common</module><module>database</module><module>service</module></modules>
-</project>

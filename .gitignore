@@ -1,22 +1,21 @@
-# Đầu ra và dữ liệu chạy thử.
-build/
+# Thư viện và cấu hình riêng từng máy.
+node_modules/
+.env
+.env.*
+!.env_ex
+# Dữ liệu demo, phiên, upload và backup cục bộ.
 data/
-*.class
-**/target/
-.idea/
-/.vscode/*
-!/.vscode/launch.json
-!/.vscode/extensions.json
-*.iml
-# Cấu hình và driver riêng từng máy ở vị trí mới.
-backend/database/config/database.properties
-backend/database/lib/*.jar
-backend/database/lib/*.dll
-# Giữ bảo vệ vị trí cũ khi thành viên nâng cấp repo.
-config/database.properties
-lib/*.jar
-lib/*.dll
-# Dữ liệu SQL Server local.
+*.log
 *.bak
 *.mdf
 *.ldf
+# Cấu hình cũ không được đưa vào git khi nâng cấp.
+config/database.properties
+backend/database/config/database.properties
+lib/*.jar
+lib/*.dll
+# IDE cá nhân; chia sẻ cấu hình chạy web.
+.idea/
+.vscode/*
+!.vscode/launch.json
+!.vscode/extensions.json
