@@ -1,15 +1,20 @@
-# Bỏ qua tệp biên dịch và dữ liệu chạy thử.
+# Đầu ra và dữ liệu chạy thử.
 build/
 data/
 *.class
+**/target/
 .idea/
 .vscode/
 *.iml
-
-# Cấu hình/driver SQL Server riêng từng máy.
+# Cấu hình và driver riêng từng máy ở vị trí mới.
+backend/database/config/database.properties
+backend/database/lib/*.jar
+backend/database/lib/*.dll
+# Giữ bảo vệ vị trí cũ khi thành viên nâng cấp repo.
 config/database.properties
 lib/*.jar
 lib/*.dll
+# Dữ liệu SQL Server local.
 *.bak
 *.mdf
 *.ldf

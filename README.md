@@ -1,6 +1,6 @@
 # HotelManager OOAD — Java Desktop
 
-Ứng dụng quản lý khách sạn bằng **Java 17 + Swing**, gồm hai module `backend` và `frontend`. Bản đầu phục vụ xem xét giao diện và chạy thử nghiệp vụ; dữ liệu được lưu cục bộ, không phải hệ thống triển khai nhiều máy.
+Ứng dụng quản lý khách sạn bằng **Java 17 + Swing**, tách `frontend` và `backend`, trong backend có hai phần làm việc chính `database` và `service`, cùng module dùng chung `common`. Bản đầu phục vụ xem xét giao diện và chạy thử nghiệp vụ; dữ liệu được lưu cục bộ, không phải hệ thống triển khai nhiều máy.
 
 ![Giao diện tổng quan](docs/screenshots/overview.png)
 
@@ -10,7 +10,7 @@
 2. Tải repository, giải nén; mở `run.bat`. Hoặc mở thư mục gốc trong IntelliJ/VS Code và chạy `vn.hotel.app.HotelApplication` sau khi biên dịch cả hai module.
 3. Không cần MySQL, Maven hay tải thư viện ngoài để chạy bằng script.
 
-Linux/macOS: `bash run.sh`. Nếu dùng Maven: `mvn package` ở thư mục gốc, sau đó chạy main với classpath gồm hai module. Các script là đường chạy đã kiểm thử trong phiên tạo mã.
+Linux/macOS: `bash run.sh`. Nếu dùng Maven: `mvn package` ở thư mục gốc, khi chạy main thủ công cần classpath của frontend và cả ba module backend. Các script là đường chạy đã kiểm thử trong phiên tạo mã.
 
 ## Tài khoản thử nghiệm
 
@@ -27,25 +27,23 @@ Dữ liệu mẫu được tạo **một lần** khi chưa có tài khoản. D�
 ## Cấu trúc
 
 ```text
-backend/src/main/java/vn/hotel/
-  api/           Điểm ghép backend
-  domain/        Các thực thể và trạng thái nghiệp vụ
-  dto/           Phiên, bảng kê và dữ liệu tài khoản an toàn
-  service/       Các nghiệp vụ phòng, khách, đặt, thanh toán, dọn và quản trị
-  security/      Băm mật khẩu, phiên, phân quyền và OTP demo
-  repository/    Cổng lưu trữ và triển khai bằng file
-  bootstrap/     Dữ liệu mẫu
-  exception/     Lỗi nghiệp vụ
-backend/src/test/java/      Kiểm thử tích hợp
-frontend/src/main/java/vn/hotel/
-  app/           Main
-  controller/    Điều phối phiên và chuyển màn hình
-  view/          Mỗi màn hình một file
-  ui/            Bảng, biểu mẫu và theme dùng chung
-docs/            Kiến trúc, danh mục file, ánh xạ SQ, giới hạn và hướng dẫn thử
-scripts/         Biên dịch và kiểm thử
-run.bat          Chạy Windows
-run.sh           Chạy Linux/macOS
+backend/
+  database/       Toàn bộ công việc CSDL và lưu trữ
+    sql/          3 file SQL Server: tạo DB, kiểm tra, dữ liệu mẫu
+    config/       Cấu hình kết nối riêng từng máy
+    lib/          JDBC driver
+    src/          JDBC, repository và dữ liệu demo file
+  service/        Nghiệp vụ, xác thực, phân quyền và ghép backend
+    src/          Service Java
+  common/         Model, DTO, lỗi và tiện ích dùng chung
+frontend/         Giao diện Swing
+  src/            Màn hình, controller và UI dùng chung
+docs/             Kiến trúc và đối chiếu tài liệu
+scripts/          Biên dịch và kiểm tra kết nối DB
+configure-db.bat   Tạo cấu hình database riêng máy
+check-db.bat       Kiểm tra kết nối SQL Server
+run.bat           Chạy ứng dụng trên Windows
+run.sh            Chạy ứng dụng trên Linux/macOS
 ```
 
 Mỗi file Java có chú thích trách nhiệm. Xem [danh mục file](docs/FILE_GUIDE.md) và [kiến trúc](docs/ARCHITECTURE.md).
@@ -62,12 +60,22 @@ Các bảng có tìm kiếm, phân trang, CSV và in. Hóa đơn có cửa sổ 
 
 **Mô phỏng hoặc chưa hoàn thiện:** SMS OTP, VietQR/webhook ngân hàng, SQL/JDBC, tính phí giờ/qua đêm và trả trễ, liên kết dịch vụ theo mã loại phòng, dịch vụ phát sinh, đặt nhiều phòng, xuất XLSX/PDF trực tiếp, logo/ảnh được sao chép vào kho quản lý. Giá demo đặt phòng tính theo ngày/đêm dựa vào `dailyPrice`; hai giá khác được lưu và hiển thị để triển khai sau. Xem [ma trận phạm vi](docs/TRACEABILITY.md).
 
-Chạy `bash scripts/test.sh` để biên dịch và kiểm tra tích hợp. Giao diện được kiểm tra riêng trên màn hình ảo khi phát triển.
+
+## Chọn đúng phần để làm việc
+
+- Làm SQL, JDBC hoặc lưu trữ: [backend/database](backend/database/README.md).
+- Làm nghiệp vụ: [backend/service](backend/service/README.md).
+- Cài máy mới, kết nối SQL Server: **[Hướng dẫn kết nối từng bước](backend/database/HUONG_DAN_KET_NOI.md)**.
+- Tổng quan backend: [backend/README.md](backend/README.md).
 
 ## SQL Server và cấu hình từng máy
 
-Đã có bộ 3 script tại [database](database/README.md): `001_create_database.sql`, `002_constraints_and_logic.sql`, `003_seed_demo_data.sql`. Chạy theo thứ tự trong SSMS để tạo 22 bảng, cài ràng buộc/nghiệp vụ và chèn dữ liệu giả (60 phòng, 120 khách, 240 phiếu đặt, 150 hóa đơn).
+Đã có bộ 3 script tại [database](backend/database/README.md): `001_create_database.sql`, `002_constraints_and_logic.sql`, `003_seed_demo_data.sql`. Chạy theo thứ tự trong SSMS để tạo 22 bảng, cài ràng buộc/nghiệp vụ và chèn dữ liệu giả (60 phòng, 120 khách, 240 phiếu đặt, 150 hóa đơn).
 
-Mỗi thành viên chạy `configure-db.bat`, sửa `config/database.properties`, thêm Microsoft JDBC JAR vào `lib/`, rồi chạy `check-db.bat` để kiểm tra kết nối. Hướng dẫn tạo login SQL, bật TCP/IP/cổng và quyền nằm trong `database/README.md`.
+Mỗi thành viên chạy `configure-db.bat`, sửa `backend/database/config/database.properties`, thêm Microsoft JDBC JAR vào `backend/database/lib/`, rồi chạy `check-db.bat` để kiểm tra kết nối. Hướng dẫn tạo login SQL, bật TCP/IP/cổng và quyền nằm trong `backend/database/README.md`.
 
 Đường chạy Swing hiện vẫn dùng `FileHotelRepository`; utility kết nối SQL tách riêng để hoàn thiện JDBC sau. Không nhầm `Demo@123` của bảng tài khoản ứng dụng với mật khẩu login SQL trên từng máy.
+
+## Nếu đã tải bản cấu trúc cũ
+
+SQL hiện ở `backend/database/sql/`. Cấu hình local chuyển từ `config/database.properties` sang `backend/database/config/database.properties`; `configure-db.bat` sẽ copy file cấu hình cũ nếu tìm thấy và chưa có file mới. JDBC JAR chuyển vào `backend/database/lib/`. Tên package và định dạng `data/hotel.bin` được giữ nguyên.

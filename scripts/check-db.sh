@@ -3,4 +3,4 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 bash scripts/build.sh
-java -cp "build/backend:lib/*" vn.hotel.infrastructure.database.DatabaseConnectionCheck "${1:-config/database.properties}"
+java -cp "build/backend:backend/database/lib/*:lib/*" vn.hotel.infrastructure.database.DatabaseConnectionCheck "${1:-backend/database/config/database.properties}"

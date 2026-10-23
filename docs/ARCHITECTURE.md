@@ -36,4 +36,8 @@ Một tiến trình, một file dữ liệu. Chưa có xác minh số điện th
 
 ## Gói chuẩn bị JDBC SQL Server
 
-`infrastructure/database` cung cấp DatabaseConfig, ConnectionFactory và DatabaseConnectionCheck. Chúng đọc cấu hình từng máy, khởi tạo SET options cần cho chỉ mục lọc/cột tính toán và thực hiện kiểm tra SELECT. Chưa thay `FileHotelRepository` tại HotelBackend. Schema SQL gồm 22 bảng, có bảng trung gian dịch vụ, chi tiết hóa đơn, sổ điểm và lịch sử đổi phòng để triển khai persistence sau; xem database/README.md trước khi ánh xạ DAO.
+`infrastructure/database` cung cấp DatabaseConfig, ConnectionFactory và DatabaseConnectionCheck. Chúng đọc cấu hình từng máy, khởi tạo SET options cần cho chỉ mục lọc/cột tính toán và thực hiện kiểm tra SELECT. Chưa thay `FileHotelRepository` tại HotelBackend. Schema SQL gồm 22 bảng, có bảng trung gian dịch vụ, chi tiết hóa đơn, sổ điểm và lịch sử đổi phòng để triển khai persistence sau; xem backend/database/README.md trước khi ánh xạ DAO.
+
+## Thư mục làm việc sau khi tách
+
+Backend là Maven aggregator gồm `common`, `database` và `service`. SQL/cấu hình/driver/JDBC/repository cùng ở `backend/database`; nghiệp vụ và HotelBackend ở `backend/service`. Common không phụ thuộc hai phần còn lại; database phụ thuộc common, service phụ thuộc database/common, frontend phụ thuộc service. Build script biên dịch đúng thứ tự để phát hiện phụ thuộc ngược. Package Java và các class lưu trong dữ liệu serialization được giữ nguyên. Hướng dẫn kết nối cho thành viên mới: `backend/database/HUONG_DAN_KET_NOI.md`.
