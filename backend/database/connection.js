@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV3 | Mã việc: C1, C6
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Chạy kết nối SQL thật trên máy nhóm, xác minh schema/config và thông báo thiếu bảng/đăng nhập/cổng/chứng chỉ.
+ * Nghiệm thu reconnect/đóng pool sau lỗi; không tự chuyển sang demo khi SQL hỏng.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Pool SQL Server dùng cho web; không dùng JDBC hoặc Java. */
 const sql = require("mssql");
 const config = require("../config/env");

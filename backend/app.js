@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A6
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Ghép route/session/error sau khi các module hoàn thiện; xử lý lỗi upload/JSON theo thông báo an toàn, không lộ stack hoặc secret.
+ * Production hiện bị chặn có chủ ý: chỉ mở sau session store và OTP thật; không tính đây là lỗi phải bỏ chặn cho demo.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Lắp Express, session, CSRF, router và lỗi; khởi động nằm tại server.js. */
 const express = require("express"),
   session = require("express-session"),

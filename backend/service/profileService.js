@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A2
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Đồng bộ thông tin tài khoản/hồ sơ khách; thống nhất địa chỉ tối đa 512 ký tự với Customer/SQL.
+ * Hoàn thiện dữ liệu hồ sơ/thẻ/lịch sử cho màn hình cá nhân; giữ kiểm tra giấy tờ trùng và mật khẩu nguyên văn.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Khách cập nhật đúng hồ sơ của mình; không thay đổi vai trò qua trang hồ sơ. */
 const v = require("../shared/validation");
 const passwords = require("../shared/passwords");

@@ -1,3 +1,11 @@
+/*
+TASK-BAN-GIAO (TODO) | Phụ trách: TV3 | Mã việc: C1, B1, B2, B6
+Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+P0: đồng bộ fn_QuoteRoom và procedure đặt/nhận/đổi phòng với ngày địa phương, giờ trả 12:00 và khung 12:00–14:00 hiện ở JS.
+Phối hợp TV2 bổ sung gia hạn/ràng buộc liên quan; nghiệm thu lịch trùng, dòng hóa đơn, chứng từ và sổ điểm bằng SSMS.
+Giữ schema publication guard, ràng buộc bất biến và AuthVersion; không tắt trigger để chạy cho qua lỗi.
+Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+*/
 /* 002_constraints_and_logic.sql
    KHÓA NGOẠI, CHECK, UNIQUE, INDEX, TRIGGER, FUNCTION, VIEW, PROCEDURE.
    SQL Server 2019+. Chạy sau 001. Chạy lại được, không tắt trigger/ràng buộc.

@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A1, A6
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Nghiệm thu ma trận quyền khi thêm route/gia hạn/báo cáo; không mở backup/config/role/Admin transfer cho Quản lý.
+ * Nhân viên chỉ dùng dịch vụ phát sinh, không sửa giá; Buồng phòng không có tổng quan. Phối hợp chủ module khi thêm quyền.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Ma trận quyền duy nhất, dùng cho cả service và menu. Khách không thừa kế quyền nhân viên. */
 const staff = [
   "bookings",

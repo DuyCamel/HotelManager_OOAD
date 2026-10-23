@@ -1,3 +1,11 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV1 + TV2 + TV3 | Mã việc: A1–A6 / B1–B6 / C2–C4
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * TV1 tách khung/table/form/HTTP và module system; TV2 phụ trách search/bookings/stays/usage/invoices; TV3 phụ trách board/catalog/reports.
+ * Các phần còn thiếu gồm tab tài khoản, audit lọc/xuất, gia hạn, phiếu thuê, bảng kê đầy đủ, ảnh/tiện ích phòng, countdown/auto refresh và báo cáo.
+ * Không để ba người sửa cả file đồng thời; tách module trước, giữ tên page/command và quyền hiện có. Xem docs/PHAN_CONG_3_NGUOI.md.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Giao diện workspace: bảng tra cứu, sơ đồ phòng và biểu mẫu gọi command nghiệp vụ. */
 (() => {
   "use strict";

@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A1, A6, B5
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Hoàn thiện lỗi mạng/JSON/401/403, loading và chống gửi lặp; TV2 phụ trách trải nghiệm tìm/giữ phòng khách.
+ * Không chỉ đổi thông báo UI để che lỗi đặt cùng ngày B1 ở backend.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Tiện ích HTTP dùng CSRF và biểu mẫu tài khoản/trang công khai. */
 window.Hotel = {
   async api(url, body) {

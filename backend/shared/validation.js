@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV2 | Mã việc: B1, B4, A2
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Chuẩn hóa kiểm tra ngày thật/same-day/biên thời gian cho API chỉ chọn ngày; giữ password() không trim.
+ * Thống nhất độ dài/giới hạn trường giữa UI/service/SQL với TV1 và TV3; không rút ngắn địa chỉ từ 512 thành 250.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Kiểm tra đầu vào dùng chung; tiền là số nguyên đồng và thời gian truyền ISO UTC. */
 const { ensure } = require("./errors");
 const { randomUUID } = require("node:crypto");

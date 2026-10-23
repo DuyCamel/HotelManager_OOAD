@@ -1,3 +1,11 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A3, A5
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Tách truy vấn nhật ký có lọc/phân trang/xuất CSV và bản in PDF (có thể tạo auditService.js khi triển khai).
+ * Hoàn thiện trạng thái sao lưu thành công/thất bại, hướng dẫn và giao diện khôi phục; SQL restore giữ ngoại tuyến trừ khi chốt cách khác.
+ * Không mở lại tùy chỉnh giờ 12:00–14:00/12:00 đã cố định trong bản hiện tại.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Thiết lập và bản sao chỉ Admin. SQL backup chạy tại máy SQL Server, không nhận đường dẫn tùy ý từ HTTP. */
 const fs = require("node:fs/promises");
 const path = require("node:path");

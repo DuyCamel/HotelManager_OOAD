@@ -1,3 +1,10 @@
+/*
+TASK-BAN-GIAO (TODO) | Phụ trách: TV3 | Mã việc: C6
+Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+Chạy sau 001/002 trên SQL Server thật; đối chiếu FK, số lượng, tiền, điểm và các trạng thái đang ở/chờ cọc/cần dọn.
+Bổ sung kịch bản cùng ngày/gia hạn/ngày lễ tương ứng seed JSON; không thêm dữ liệu cá nhân hoặc tài khoản ngân hàng thật.
+Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+*/
 /* 003_seed_demo_data.sql
    DỮ LIỆU GIẢ CHO KIỂM THỬ — chạy sau 001 và 002.
    104 tài khoản, 120 hồ sơ khách, 60 phòng, 240 phiếu đặt, 160 phiếu thuê,

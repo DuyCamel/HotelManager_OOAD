@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV3 | Mã việc: C1, C5, C6
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Đồng bộ interface truy vấn mới với SQL adapter; giữ hàng đợi ghi và rollback trạng thái khi nghiệp vụ thất bại.
+ * Đối chiếu tổng hóa đơn/thanh toán/điểm với SQL khi nghiệm thu B6; JSON demo không thay việc chạy SQL thật.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Repository demo có hàng đợi ghi, clone trước thay đổi và đổi tên file nguyên tử. Không dùng làm CSDL nhiều máy. */
 const fs = require("node:fs/promises");
 const path = require("node:path");

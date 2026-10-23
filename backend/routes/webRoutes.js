@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A6, B3, C2, C4
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Điều phối route/module theo phần việc: TV2 gửi route phiếu thuê/gia hạn; TV3 gửi ảnh phòng/báo cáo; TV1 gửi audit/hệ thống.
+ * Giữ required/CSRF/quyền, kiểm tra ảnh và giới hạn kích thước; không public thư mục data hoặc đường dẫn file tùy ý.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Tuyến HTML và JSON. Phân quyền nghiệp vụ được kiểm tra thêm trong service. */
 const express = require("express");
 const { required, loginLimit } = require("../middleware/security");

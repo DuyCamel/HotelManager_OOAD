@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A1, A4, A6
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Nghiệm thu request trái quyền, session hết hạn/thu hồi và đăng nhập nhiều lần; UI cần xử lý 401/403 rõ ràng.
+ * Nếu triển khai thật mới tích hợp session store dùng chung và rate limit chia sẻ; không gỡ chặn production khi chưa đủ điều kiện.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** CSRF, kiểm tra tài khoản ở mỗi request và giới hạn lần đăng nhập trong cửa sổ 15 phút. */
 const { randomBytes, timingSafeEqual } = require("node:crypto");
 const { ensure } = require("../shared/errors");

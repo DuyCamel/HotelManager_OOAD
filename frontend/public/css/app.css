@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV1 (khung) + TV2/TV3 (màn hình) | Mã việc: A6 / B3–B5 / C2–C4
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * TV1 giữ style dùng chung; tách style màn hình theo module nếu cần để giảm conflict.
+ * Nghiệm thu mobile, bảng/form dài, trạng thái rỗng/lỗi/loading; màu buồng phòng và quá hạn thuộc TV3/C3.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /* Ngôn ngữ giao diện Aurora: màu xanh rừng, nền giấy, khoảng thở và lưới responsive. */
 :root {
   --forest: #173f35;

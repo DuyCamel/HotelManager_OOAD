@@ -2,6 +2,12 @@
 
 Đồ án quản lý khách sạn chuyển từ Java desktop sang **JavaScript / Node.js / Express / EJS / SQL Server**. Frontend và backend nằm ở hai thư mục riêng; backend tách phần **database** và **service**. Mỗi file mã nguồn có chú thích mô tả trách nhiệm. Không còn mã Java, thư viện desktop hay thư mục/script test trong phiên bản này.
 
+## Phân công phần việc còn lại
+
+Xem [phân công 3 thành viên](docs/PHAN_CONG_3_NGUOI.md): TV1 hệ thống/tài khoản/hồ sơ; TV2 đặt phòng/lưu trú/thanh toán; TV3 phòng/buồng phòng/báo cáo/database. Mỗi người làm cả backend và frontend của module. Đầu các file có `TASK-BAN-GIAO`, người phụ trách và mã việc; phân biệt lỗi cần sửa, phần thiếu, nghiệm thu và việc cần chốt.
+
+Bảng phân công được rà từ commit `d2c9ba4`. Các chú thích giao việc **không đồng nghĩa đã sửa hoặc triển khai**. Quy tắc thời gian mới đã khác một số mô tả bên dưới; xem B1/C1/C6 để đồng bộ code, SQL và tài liệu.
+
 ## Chạy nhanh bằng VS Code
 
 Cài Node.js **22 trở lên**. Mở đúng thư mục chứa `package.json` trong VS Code, mở Terminal:

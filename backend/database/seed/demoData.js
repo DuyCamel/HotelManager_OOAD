@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV3 | Mã việc: C6, B1
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Bổ sung dữ liệu biên cho lỗi đặt hôm nay, gia hạn có/không trùng, ngày lễ và giờ 12:00–14:00 theo quy tắc TV2.
+ * Giữ kịch bản JSON và SQL 003 tương đương về nghiệp vụ; không coi số tài khoản JSON/SQL hiện tại đã giống nhau.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Dữ liệu giả dùng để duyệt web không cần SQL Server. Không gọi ngân hàng/SMS. */
 const { hash } = require("../../shared/passwords");
 const { defs } = require("../schema");

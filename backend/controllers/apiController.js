@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A6, B2, C4
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * File ghép chung: TV1 tích hợp command gia hạn của TV2, truy vấn audit A3 và báo cáo C4 của TV3.
+ * Thống nhất tên command/body/result với người phụ trách trước merge; actor/role luôn lấy từ session, không lấy request body.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Ánh xạ command cố định sang service; không cung cấp CRUD database trực tiếp. */
 const { ensure } = require("../shared/errors");
 const { safeAccount } = require("../shared/validation");

@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A1, A4
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Hoàn thiện lỗi/luồng đăng nhập và đăng ký; giữ email-only, nhân viên không tự đăng ký.
+ * Tách OTP demo/SMS theo A4; ràng buộc OTP với phiên, người gửi, người nhận; không trả mã thật cho client.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Đăng nhập bằng EMAIL duy nhất; OTP local có hạn và số lần thử, không có username. */
 const v = require("../shared/validation");
 const passwords = require("../shared/passwords");

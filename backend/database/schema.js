@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV3 | Mã việc: C1, C2, C4
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Bổ sung mapping RoomTypeService/field truy vấn cần thiết sau khi chốt service; giữ computed/identity không ghi từ client.
+ * Đối chiếu mọi tên cột với SQL 001, kiểu tham số repository và dữ liệu seed.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Ánh xạ dữ liệu JS <-> SQL Server. Cột computed/identity không được ghi từ API. */
 const defs = {
   accounts: [

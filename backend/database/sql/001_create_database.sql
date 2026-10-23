@@ -1,3 +1,10 @@
+/*
+TASK-BAN-GIAO (TODO) | Phụ trách: TV3 | Mã việc: C1, C2
+Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+Chạy schema bằng SSMS; đối chiếu kiểu/độ dài/mapping và RoomTypeService trước khi thêm luồng danh mục.
+Nếu sửa schema sau khi nhóm đã có dữ liệu, ghi rõ cách nâng cấp; không DROP dữ liệu hoặc giả định chạy lại 001 tự migrate.
+Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+*/
 /* 001_create_database.sql
    TẠO CSDL VÀ BẢNG — SQL Server 2019+ / SSMS.
    Chạy bằng tài khoản có quyền CREATE DATABASE. Không có đường dẫn MDF/LDF cố định.

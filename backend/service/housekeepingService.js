@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV3 | Mã việc: C3
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Bổ sung truy vấn nhiệm vụ/hạn dọn/lịch sử ảnh cho sơ đồ tự cập nhật; không chỉ dựa vào trạng thái phòng phía client.
+ * Nghiệm thu báo hỏng, sửa xong/dọn xong, không chuyển trống khi còn khách; Buồng phòng chỉ có sơ đồ nghiệp vụ.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Buồng phòng chỉ dùng sơ đồ: hoàn tất dọn hoặc ghi hư hại kèm ảnh. */
 const v = require("../shared/validation");
 const { ensure } = require("../shared/errors");

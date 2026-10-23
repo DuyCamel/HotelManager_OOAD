@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A1
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Nghiệm thu tài khoản seed/tài khoản mới/đổi mật khẩu dùng cùng định dạng hash; không ghi mật khẩu/hash ra API/log.
+ * File đã có PBKDF2 và salt ngẫu nhiên: không viết lại hoặc đổi định dạng nếu không có kế hoạch chuyển dữ liệu.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** PBKDF2 SHA-256, 120000 vòng; tương thích hash SQL mẫu, salt ngẫu nhiên cho tài khoản mới. */
 const { randomBytes, pbkdf2, timingSafeEqual } = require("node:crypto");
 const { promisify } = require("node:util");

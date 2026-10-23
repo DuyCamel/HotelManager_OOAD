@@ -1,3 +1,11 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV3 | Mã việc: C1, C4, C5
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Nghiệm thu transaction/rollback, OUTPUT INTO trên bảng có trigger và kiểu ngày/tiền/tham số trên SQL Server thật.
+ * C5: bổ sung truy vấn tham số hóa có lọc/phân trang/tổng hợp cho A3/C4/A6; không ghép raw tên cột hoặc điều kiện từ client.
+ * Chốt interface trước với TV1/TV2; giữ chống tranh chấp khi hai máy cùng đặt/thu tiền.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Repository SQL tham số hóa. Mỗi nghiệp vụ giữ application lock trong transaction để tránh race/lost update. */
 const { defs, computed } = require("../schema");
 const { sql, connect } = require("../connection");

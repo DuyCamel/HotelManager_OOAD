@@ -1,3 +1,11 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV2 | Mã việc: B1, B2, B3, B5, B6
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * P0/B1: sửa create() từ chối ngày hôm nay vì fixedStayTimes() trả 00:00 rồi so với Date.now(); giữ API chọn ngày.
+ * B2: bổ sung gia hạn trong transaction, kiểm tra lịch/capacity và đề xuất đổi phòng khi trùng; khách từ chối thì giữ nguyên phiếu.
+ * B3/B5: bổ sung dữ liệu chi tiết phiếu thuê/giữ chỗ để UI tra cứu và in; nghiệm thu tranh chấp phòng/hết hạn với TV3.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Tìm phòng, giữ chỗ, cọc, nhận và đổi phòng trong transaction; khách chỉ thao tác phiếu của mình. */
 const v = require("../shared/validation");
 const { ensure } = require("../shared/errors");

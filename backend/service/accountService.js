@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A1
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Hỗ trợ dữ liệu hai nhóm Nhân viên/Khách hàng; tab Khách hàng không có phân quyền.
+ * Nghiệm thu Admin/Quản lý, khóa tài khoản và thu hồi phiên; không cấp quyền Admin qua role().
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Quản lý chỉ xem/sửa/khóa/mở tài khoản thường; tạo nhân viên, phân quyền, chuyển Admin chỉ Admin. */
 const v = require("../shared/validation");
 const { ensure } = require("../shared/errors");

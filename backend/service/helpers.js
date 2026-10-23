@@ -1,3 +1,11 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV2 | Mã việc: B1, B2, B4, C1
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Thống nhất ngày địa phương APP_TIME_ZONE, giờ chuẩn hóa, khung buồng phòng và giá theo ngày; sửa lỗi đặt hôm nay cùng bookingService.
+ * Bàn giao ví dụ đầu vào/đầu ra giá và biên ngày cho TV3 đồng bộ fn_QuoteRoom/procedure SQL; không để hai nơi tính khác nhau.
+ * Gia hạn/đổi phòng giữ lịch sử, chống trùng và hạn dọn 90 phút đã có.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Quy tắc thuần dùng chung trong transaction: thời gian, giá chốt và ghi nhật ký. */
 const { ensure } = require("../shared/errors");
 const v = require("../shared/validation");

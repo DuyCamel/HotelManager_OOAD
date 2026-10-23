@@ -1,3 +1,10 @@
+/**
+ * TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A4, A5, A6, C1
+ * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+ * Cập nhật kiểm tra cấu hình OTP/session/backup nếu có tích hợp; đồng bộ tên biến với .env_ex và tài liệu.
+ * Phối hợp TV2/TV3 thống nhất múi giờ; không hardcode mật khẩu SQL hoặc API key vào code.
+ * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+ */
 /** Cấu hình duy nhất; DB_MODE sai hoặc cấu hình production chưa đủ sẽ dừng sớm. */
 const path = require("node:path");
 require("dotenv").config({
