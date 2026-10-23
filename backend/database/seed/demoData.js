@@ -7,7 +7,7 @@ module.exports = async function createDemo() {
     ...Object.fromEntries(Object.keys(defs).map((k) => [k, []])),
   };
   const now = new Date();
-  const day = (offset, h = 7) => {
+  const day = (offset, h = 0) => {
     const t = new Date(now);
     t.setUTCHours(h, 0, 0, 0);
     t.setUTCDate(t.getUTCDate() + offset);

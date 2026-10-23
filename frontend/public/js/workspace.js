@@ -424,7 +424,9 @@
         ]);
         break;
       case "usage":
-        html = table([...d.usage].reverse(), [
+        html =
+          `<div class="usage-intro"><div><span class="eyebrow">GUEST EXPERIENCE</span><h2>Dịch vụ sử dụng</h2><p>Theo dõi dịch vụ phát sinh trong thời gian lưu trú và cập nhật bảng kê rõ ràng.</p></div>${btn("＋ Ghi dịch vụ", "usage.new", "", "primary")}</div>` +
+          table([...d.usage].reverse(), [
           [
             "Phiếu / Dịch vụ",
             (r) =>
@@ -454,7 +456,7 @@
                 ? btn("Hủy ghi nhận", "usage.void", r.id)
                 : "",
           ],
-        ]);
+          ]);
         break;
       case "cards":
       case "mycard":
@@ -544,7 +546,7 @@
         break;
       case "system":
         html =
-          `<div class="tabs">${btn("Cấu hình khách sạn", "system.edit")}${btn("Tạo bản sao lưu", "system.backup")}</div><div class="panel settings-summary"><h3>${E(d.settings[0].hotelName)}</h3><p>${E(d.settings[0].address)} · ${E(d.settings[0].hotline)}</p><p>Giờ nhận ${E(d.settings[0].checkInTime)} · Giờ trả ${E(d.settings[0].checkOutTime)}</p><p class="muted">Giá đặt phòng hiện tính theo ngày, làm tròn tối thiểu 1 ngày. Phụ thu trễ và quy tắc giờ/đêm chưa tự áp dụng.</p></div><h3>Lịch sử sao lưu</h3>` +
+          `<div class="tabs">${btn("Cấu hình khách sạn", "system.edit")}${btn("Tạo bản sao lưu", "system.backup")}</div><div class="panel settings-summary"><h3>${E(d.settings[0].hotelName)}</h3><p>${E(d.settings[0].address)} · ${E(d.settings[0].hotline)}</p><p>Nhận phòng: ngoài khung 12:00–14:00 · Trả phòng cố định: 12:00</p><p class="muted">Giá đặt phòng tính theo ngày. Khoảng 12:00–14:00 dành cho buồng phòng.</p></div><h3>Lịch sử sao lưu</h3>` +
           table(d.backups, [
             [
               "Mã / Thời gian",
@@ -566,7 +568,7 @@
         html = `<div class="panel profile-panel"><div class="avatar large">${E($(".user-menu strong").textContent.slice(0, 1))}</div><h2>${E($(".user-menu strong").textContent)}</h2><p>${E(labels[role])}</p>${btn("Cập nhật hồ sơ", "profile.edit")}${btn("Đổi mật khẩu", "profile.password")}</div>`;
         break;
       case "search":
-        html = `<div class="panel"><form id="search-form" class="search-form"><label>Ngày nhận<input name="startAt" type="datetime-local" required></label><label>Ngày trả<input name="endAt" type="datetime-local" required></label><label>Số khách<input name="guests" type="number" min="1" max="20" value="2" required></label><button class="primary">Tìm phòng ↗</button></form></div><div id="available-results" class="search-cards"></div>`;
+        html = `<div class="panel"><form id="search-form" class="search-form"><label>Ngày nhận phòng<input name="startAt" type="date" required></label><label>Ngày trả phòng (12:00)<input name="endAt" type="date" required></label><label>Số khách<input name="guests" type="number" min="1" max="20" value="2" required></label><button class="primary">Tìm phòng ↗</button></form></div><div id="available-results" class="search-cards"></div>`;
         break;
     }
     $("#page-content").innerHTML = html;
@@ -761,22 +763,20 @@
           ),
           field(
             "startAt",
-            "Ngày giờ nhận",
-            "datetime-local",
-            local(Date.now()),
+            "Ngày nhận phòng",
+            "date",
+            local(Date.now()).slice(0, 10),
           ),
           field(
             "endAt",
-            "Ngày giờ trả",
-            "datetime-local",
-            local(Date.now() + 86400000),
+            "Ngày trả phòng (12:00)",
+            "date",
+            local(Date.now() + 86400000).slice(0, 10),
           ),
           field("guests", "Số khách", "number", 1),
           field("deposit", "Cọc tiền mặt", "number", 100000),
         ],
         async (b) => {
-          b.startAt = new Date(b.startAt).toISOString();
-          b.endAt = new Date(b.endAt).toISOString();
           await command("booking.create", b);
         },
         "Tạo phiếu",
@@ -995,8 +995,6 @@
           "hotelName",
           "address",
           "hotline",
-          "checkInTime",
-          "checkOutTime",
           "lateFeeFrom",
           "lateFeePercent",
           "bankCode",
@@ -1009,8 +1007,6 @@
               "Tên khách sạn",
               "Địa chỉ",
               "Hotline",
-              "Giờ nhận phòng",
-              "Giờ trả phòng",
               "Mốc phụ thu trễ (chưa áp dụng)",
               "Phụ thu trễ % (chưa áp dụng)",
               "Mã ngân hàng",
@@ -1019,7 +1015,7 @@
             ][i],
             k === "lateFeePercent"
               ? "number"
-              : ["checkInTime", "checkOutTime", "lateFeeFrom"].includes(k)
+              : ["lateFeeFrom"].includes(k)
                 ? "time"
                 : "text",
             s[k],
@@ -1170,15 +1166,13 @@
     if (e.target.id !== "search-form") return;
     e.preventDefault();
     const b = Object.fromEntries(new FormData(e.target));
-    b.startAt = new Date(b.startAt).toISOString();
-    b.endAt = new Date(b.endAt).toISOString();
     try {
       const rows = await api("/api/availability?" + new URLSearchParams(b));
       $("#available-results").innerHTML =
         rows
           .map(
             (r) =>
-              `<article><span class="eyebrow">${E(r.type.name)}</span><h3>${E(r.name)}</h3><p>${r.type.capacity} khách · ${r.type.beds} giường</p><strong>${money(r.quote)}</strong>${btn("Giữ phòng 30 phút", "customer.book", r.id, "primary")}</article>`,
+              `<article class="room-result-card"><span class="eyebrow">${E(r.type.name)}</span><h3>${E(r.name)}</h3><p>${r.type.capacity} khách · ${r.type.beds} giường</p><strong>${money(r.quote)}</strong>${btn("Đặt phòng", "customer.book", r.id, "primary")}</article>`,
           )
           .join("") ||
         '<p class="empty">Không có phòng phù hợp. Hãy đổi ngày hoặc số khách.</p>';
@@ -1187,7 +1181,7 @@
           (el.onclick = async (ev) => {
             ev.stopPropagation();
             actionForm(
-              "Giữ chỗ online",
+              "Đặt phòng",
               [
                 field("roomId", "", "hidden", el.dataset.id),
                 ...["startAt", "endAt", "guests"].map((k) =>
@@ -1195,7 +1189,7 @@
                 ),
               ],
               "booking.create",
-              "Chưa thu tiền qua web. Liên hệ khách sạn xác nhận cọc trong 30 phút, nếu không phiếu tự hủy.",
+              "Kiểm tra lại thông tin trước khi xác nhận. Sau khi gửi, nhân viên sẽ liên hệ để xác nhận đặt phòng và tiền cọc.",
             );
           }),
       );

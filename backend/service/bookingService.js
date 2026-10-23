@@ -8,8 +8,9 @@ module.exports = (repo) => ({
     return repo.transaction((tx) => h.expire(tx));
   },
   async available(b) {
-    const startAt = v.date(b.startAt, "Ngày nhận"),
-      endAt = v.date(b.endAt, "Ngày trả"),
+    const startDate = v.calendarDate(b.startAt, "Ngày nhận"),
+      endDate = v.calendarDate(b.endAt, "Ngày trả"),
+      { startAt, endAt } = h.fixedStayTimes(startDate, endDate),
       guests = v.number(b.guests || 1, "Số người", 1, 20);
     ensure(
       Date.parse(endAt) > Date.parse(startAt),
@@ -42,8 +43,9 @@ module.exports = (repo) => ({
   },
   async create(user, b) {
     if (user.role !== "CUSTOMER") allow(user, "bookings");
-    const startAt = v.date(b.startAt, "Ngày nhận"),
-      endAt = v.date(b.endAt, "Ngày trả"),
+    const startDate = v.calendarDate(b.startAt, "Ngày nhận"),
+      endDate = v.calendarDate(b.endAt, "Ngày trả"),
+      { startAt, endAt } = h.fixedStayTimes(startDate, endDate),
       guests = v.number(b.guests, "Số người", 1, 20);
     ensure(
       Date.parse(startAt) >= Date.now() - 300000 &&
@@ -168,6 +170,10 @@ module.exports = (repo) => ({
         Date.parse(now) >= Date.parse(booking.startAt) &&
           Date.parse(now) < Date.parse(booking.endAt),
         "Chưa đến giờ nhận hoặc đã hết khoảng lưu trú.",
+      );
+      ensure(
+        !h.isHousekeepingWindow(new Date(now)),
+        "Không thể nhận phòng trong khung giờ buồng phòng 12:00–14:00.",
       );
       const room = await tx.find("rooms", booking.roomId);
       ensure(room?.status === "AVAILABLE", "Phòng chưa sạch/sẵn sàng.");

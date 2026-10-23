@@ -57,17 +57,15 @@ document
   ?.addEventListener("click", () => window.print());
 const publicSearch = document.querySelector("#public-search");
 if (publicSearch) {
-  const local = (d) =>
+  const localDate = (d) =>
     new Date(d - Date.prototype.getTimezoneOffset.call(new Date()) * 60000)
       .toISOString()
-      .slice(0, 16);
-  publicSearch.startAt.value = local(Date.now() + 3600000);
-  publicSearch.endAt.value = local(Date.now() + 86400000);
+      .slice(0, 10);
+  publicSearch.startAt.value = localDate(Date.now() + 86400000);
+  publicSearch.endAt.value = localDate(Date.now() + 2 * 86400000);
   publicSearch.addEventListener("submit", async (e) => {
     e.preventDefault();
     const b = Object.fromEntries(new FormData(publicSearch));
-    b.startAt = new Date(b.startAt).toISOString();
-    b.endAt = new Date(b.endAt).toISOString();
     try {
       const rows = await Hotel.api(
         "/api/availability?" + new URLSearchParams(b),

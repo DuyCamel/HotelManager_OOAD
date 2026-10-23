@@ -11,7 +11,7 @@ Ghi nghiệp vụ SQL chạy transaction SERIALIZABLE và application lock `Hote
 
 Phiếu: `PENDING → CONFIRMED → CHECKED_IN → COMPLETED`; `PENDING → CANCELLED` khi người dùng hủy hoặc hết hạn giữ chỗ chưa cọc. Hóa đơn: tạo DRAFT, thêm dòng, thêm chứng từ, xác nhận PAID, cộng điểm, đóng phiếu thuê và chuyển phòng DIRTY trong cùng transaction. SQL trigger kiểm tra tổng dòng/thanh toán/sổ điểm và ngăn sửa chứng từ đã chốt.
 
-Thời gian lưu UTC; hiển thị mặc định Asia/Ho_Chi_Minh. Bộ chọn datetime-local được đổi sang ISO UTC trước khi gửi. Chính sách giá hiện dùng số ngày UTC của khoảng lưu trú, tối thiểu 1 ngày, cộng giá lễ theo từng ngày UTC. `APP_TIME_ZONE` đang là cấu hình định hướng; giao diện hiện cố định Asia/Ho_Chi_Minh, chưa hỗ trợ đổi múi giờ từ UI.
+Thời gian lưu UTC; hiển thị mặc định Asia/Ho_Chi_Minh. Người dùng chỉ chọn ngày: hệ thống chuẩn hóa giờ trả phòng là 12:00 theo `APP_TIME_ZONE`; nhận phòng được phép ngoài khung 12:00–14:00 dành cho buồng phòng. Giao diện không cho cấu hình lại hai quy tắc này. Chính sách giá hiện dùng số ngày UTC của khoảng lưu trú, tối thiểu 1 ngày, cộng giá lễ theo từng ngày UTC. `APP_TIME_ZONE` đang là cấu hình định hướng; giao diện hiện cố định Asia/Ho_Chi_Minh, chưa hỗ trợ đổi múi giờ từ UI.
 
 HTTP ghi yêu cầu CSRF token lấy từ meta tag, cookie HttpOnly/SameSite Lax. Mật khẩu băm PBKDF2 SHA256 120.000 vòng, salt ngẫu nhiên cho tài khoản tạo mới. Sau đăng nhập session được regenerate. Khóa/đổi quyền/đổi mật khẩu tăng AuthVersion; request kế tiếp kết thúc phiên cũ. Production bị chặn cho tới khi bổ sung session store phù hợp và OTP thật.
 

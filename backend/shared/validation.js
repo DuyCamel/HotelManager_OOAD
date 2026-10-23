@@ -37,6 +37,19 @@ const date = (v, label) => {
   ensure(Number.isFinite(d.getTime()), `${label} không hợp lệ.`);
   return d.toISOString();
 };
+const calendarDate = (v, label) => {
+  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(v || "")
+    ? new Date(`${v}T00:00:00Z`)
+    : null;
+  ensure(
+    typeof v === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(v) &&
+      parsed &&
+      parsed.toISOString().slice(0, 10) === v,
+    `${label} không hợp lệ.`,
+  );
+  return v;
+};
 const id = (prefix) =>
   prefix + randomUUID().replaceAll("-", "").slice(0, 14).toUpperCase();
 const overlap = (a, b, c, d) =>
@@ -53,6 +66,7 @@ const safeAccount = (a) =>
       }
     : null;
 module.exports = { text, email, phone, number, date, id, overlap, safeAccount };
+module.exports.calendarDate = calendarDate;
 
 // Mật khẩu không trim: khoảng trắng là một phần bí mật ở mọi luồng.
 module.exports.password = (value) => {

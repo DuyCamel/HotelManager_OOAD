@@ -1,6 +1,7 @@
 /** Quy tắc thuần dùng chung trong transaction: thời gian, giá chốt và ghi nhật ký. */
 const { ensure } = require("../shared/errors");
 const v = require("../shared/validation");
+const config = require("../config/env");
 const active = (b) => ["PENDING", "CONFIRMED", "CHECKED_IN"].includes(b.status);
 async function audit(tx, user, action, objectType, objectId, detail = "") {
   await tx.insert("audit", {
@@ -35,6 +36,38 @@ async function available(tx, roomId, startAt, endAt, exclude = "") {
       v.overlap(startAt, endAt, b.startAt, b.endAt),
   );
 }
+function localOffset(date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: config.timeZone,
+    timeZoneName: "longOffset",
+  }).formatToParts(new Date(`${date}T00:00:00Z`));
+  return parts.find((part) => part.type === "timeZoneName")?.value.replace("GMT", "") || "Z";
+}
+function localDatePart(value) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: config.timeZone,
+  }).format(new Date(value));
+}
+function fixedStayTimes(startDate, endDate) {
+  return {
+    startAt: new Date(
+      `${startDate}T00:00:00${localOffset(startDate)}`,
+    ).toISOString(),
+    endAt: new Date(
+      `${endDate}T12:00:00${localOffset(endDate)}`,
+    ).toISOString(),
+  };
+}
+function isHousekeepingWindow(value) {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: config.timeZone,
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).format(value),
+  );
+  return hour >= 12 && hour < 14;
+}
 async function quote(tx, roomId, startAt, endAt) {
   ensure(
     Date.parse(endAt) > Date.parse(startAt),
@@ -43,10 +76,8 @@ async function quote(tx, roomId, startAt, endAt) {
   const room = await tx.find("rooms", roomId);
   ensure(room, "Không có phòng.", 404);
   const type = await tx.find("types", room.typeId);
-  const start = new Date(startAt);
-  start.setUTCHours(0, 0, 0, 0);
-  const end = new Date(endAt);
-  end.setUTCHours(0, 0, 0, 0);
+  const start = new Date(`${localDatePart(startAt)}T00:00:00Z`);
+  const end = new Date(`${localDatePart(endAt)}T00:00:00Z`);
   const nights = Math.max(1, Math.round((end - start) / 86400000));
   ensure(nights <= 3660, "Khoảng lưu trú quá dài.");
   const holidays = await tx.list("holidays");
@@ -76,4 +107,14 @@ async function createTask(tx, roomId, stayId, now) {
     assignedTo: null,
   });
 }
-module.exports = { active, audit, expire, available, quote, createTask };
+module.exports = {
+  active,
+  audit,
+  expire,
+  available,
+  fixedStayTimes,
+  localDatePart,
+  isHousekeepingWindow,
+  quote,
+  createTask,
+};
