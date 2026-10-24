@@ -1,0 +1,35 @@
+<!--
+TASK-BAN-GIAO (TODO) | Phụ trách: TV1 (tích hợp) | Mã việc: A6 / B3 / C3 / C4
+Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+Ghép module giao diện sau khi tách core/workspace.js; giữ menu theo vai trò và đường dẫn module hợp lệ.
+TV2 bàn giao gia hạn/phiếu thuê/bảng kê; TV3 bàn giao sơ đồ/danh mục/báo cáo; Buồng phòng không thêm tổng quan.
+Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+-->
+<!-- Khung workspace và menu lọc theo vai trò; nội dung do core/workspace.js dựng. -->
+<%- include('../partials/head') %>
+<body class="workspace" data-initial-page="<%= initialPage %>" data-catalog-kind="<%= catalogKind || '' %>" data-role="<%= user.role %>" data-user-id="<%= user.id %>">
+<%- include('../partials/sidebar') %>
+<div class="workspace-main">
+<%- include('../partials/topbar') %>
+<main class="content">
+<div class="page-heading">
+<div>
+<%- include(headingView) %></div>
+<div id="page-actions">
+</div>
+</div>
+<div id="page-content" data-module="<%= moduleName %>">
+<p class="empty">Đang tải dữ liệu…</p>
+</div>
+</main>
+<footer class="workspace-footer">© 2026 Aurora Hotel <span id="today">
+</span>
+</footer>
+</div>
+<%- include('../partials/editor') %>
+<div id="toast" role="status">
+</div>
+<script type="module" src="/assets/js/core/workspace.js">
+</script>
+</body>
+</html>

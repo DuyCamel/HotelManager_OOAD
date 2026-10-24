@@ -1,0 +1,21 @@
+<!--
+TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A6
+Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+Cập nhật asset sau khi tách module; giữ CSRF/CSP và không thêm script inline tùy tiện.
+Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+-->
+<!DOCTYPE html>
+<!-- Head dùng chung: tài nguyên nội bộ, CSP không cần script inline. -->
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="csrf-token" content="<%= csrf %>" />
+    <title><%= config.name %> — Hotel Management</title>
+    <link rel="stylesheet" href="/assets/css/core/base.css" />
+    <script src="/assets/js/core/http.js" defer></script>
+  <link rel="stylesheet" href="/assets/css/home/home.css">
+<link rel="stylesheet" href="/assets/css/auth/auth.css">
+<link rel="stylesheet" href="/assets/css/workspace/workspace.css">
+<link rel="stylesheet" href="/assets/css/core/dialog.css">
+</head>

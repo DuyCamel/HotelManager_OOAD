@@ -4,6 +4,8 @@ Rà soát từ nhánh `main` tại commit `d2c9ba48df8533fa353b5a2c4898772170fd2
 
 **Đây là phân công phần việc còn lại, không phải yêu cầu viết lại toàn bộ repo.** Các khối `TASK-BAN-GIAO` ở đầu file chỉ là chú thích giao việc. Chưa triển khai các tính năng liệt kê bên dưới và chưa sửa lỗi nghiệp vụ trong đợt ghi task này.
 
+> Cập nhật cấu trúc ngày 24/10/2026: đã tách MVC và frontend module theo `docs/MODULES.md`. A6 hoàn tất phần tách file; các tiêu chí UX/API khác vẫn còn. `Module_Signup.xlsx` để thành viên tự chọn và ghi tên. Những đường dẫn dưới đây đã chuyển sang cấu trúc mới.
+
 ## 1. Phần đã có, tiếp tục sử dụng
 
 - Web Express/EJS, tách frontend/backend, adapter SQL/demo, `.env_ex`, hướng dẫn kết nối, F5.
@@ -34,11 +36,11 @@ Chia theo khối lượng còn lại: TV1 có nhiều màn hình hệ thống; T
 | A3 | P1 · Chưa có lọc/xuất audit đầy đủ | Thay nhật ký 100 dòng cắt từ 500 dòng gần nhất bằng truy vấn có lọc thời gian/người/hành động/đối tượng và phân trang; xuất CSV và bản in/lưu PDF của kết quả lọc. | Chỉ Admin truy cập. Lọc/trang/xuất cùng một tập dữ liệu, không chỉ lọc phần đã tải; CSV escape đúng; có log khách và nhân viên. |
 | A4 | P1 nếu nghiệm thu SMS · Cần tích hợp ngoài | Tách provider OTP demo/SMS. Gắn chuyển Admin với OTP thật qua SMS khi có nhà cung cấp/cấu hình. | OTP hết hạn/giới hạn thử, buộc với phiên và mục tiêu, không lộ OTP thật. Admin cũ thành Quản lý, cả hai phiên cũ bị thu hồi. Nếu chưa có dịch vụ SMS, giữ nhãn DEMO và báo chưa hoàn thành tích hợp; không giả vờ gửi SMS. |
 | A5 | P1 · Hoàn thiện UI/nghiệm thu | Tách rõ Sao lưu và Khôi phục trong màn hệ thống; hiển thị tiến trình/kết quả/lỗi và giải thích JSON demo khác SQL `.bak`; ghi nhận thất bại khi có thể. | Chỉ Admin. Restore demo đăng xuất mọi phiên. SQL backup chạy với quyền/thư mục đúng trên máy SQL; SQL restore hiện ngoại tuyến bằng SSMS và UI hướng dẫn rõ. Ảnh cần sao lưu riêng. |
-| A6 | P0 để nhóm làm song song · Tổ chức giao diện/API chung | Tách `workspace.js` theo 3 phần sở hữu, giữ table/form/toast/HTTP dùng chung; điều phối controller/routes/readService. Chuẩn hóa 401/403/lỗi mạng, loading, tránh gửi lặp; chốt truy vấn theo màn hình với TV3. | Mỗi người sửa được module mình, không phải sửa toàn bộ workspace.js. Các page/command cũ vẫn dùng được; menu/quyền không sai. Có trạng thái rỗng/lỗi/mobile; không mở production chỉ để bỏ lỗi cấu hình. |
+| A6 | P0 để nhóm làm song song · Tổ chức giao diện/API chung | Đã tách route/controller/model/view và JavaScript module. Phần còn lại: chuẩn hóa core HTTP/table/form/toast và hợp đồng dữ liệu theo màn hình. Chuẩn hóa 401/403/lỗi mạng, loading, tránh gửi lặp; chốt truy vấn theo màn hình với TV3. | Mỗi người sửa được module mình, không phải sửa toàn bộ workspace.js. Các page/command cũ vẫn dùng được; menu/quyền không sai. Có trạng thái rỗng/lỗi/mobile; không mở production chỉ để bỏ lỗi cấu hình. |
 
-Backend TV1: `service/{auth,account,profile,customer,system,read}Service.js`, `service/index.js`, `controllers/apiController.js`, `routes/webRoutes.js`, `middleware/security.js`, `app.js`, `config/env.js`, `shared/{permissions,passwords,errors}.js`.
+Backend TV1: `src/models/{auth,accounts,profile,customers,memberships,settings,backups,audit,workspace}/`; các controller/route cùng tên; `src/core/`, `src/app.js`, `src/config/env.js` và file ghép `src/models/index.js`, `src/routes/index.js`.
 
-Frontend TV1: `views/auth.ejs`, phần accounts/customers/cards/mycard/profile/system trong `workspace.js`, `views/workspace.ejs`, `views/error.ejs`, `views/partials/head.ejs`, tiện ích `common.js` và CSS dùng chung.
+Frontend TV1: `src/views/{auth,accounts,customers,memberships,profile,settings,backups,audit}/`, JavaScript module cùng tên trong `src/public/js/modules/`, `src/views/{layouts,partials,errors}/`, `src/public/js/core/` và CSS dùng chung.
 
 ## 4. TV2 — Đặt phòng, lưu trú và thanh toán
 
@@ -51,9 +53,9 @@ Frontend TV1: `views/auth.ejs`, phần accounts/customers/cards/mycard/profile/s
 | B5 | P1 · Hoàn thiện frontend khách | Trang tìm/chi tiết phòng dùng ảnh/tiện ích TV3 cung cấp; giữ chỗ hiển thị hạn còn lại, số tiền phòng/cọc và cách liên hệ xác nhận; lịch sử phiếu có chi tiết/trạng thái/thông báo hết hạn rõ. | Đặt online cần đăng nhập, chỉ xem phiếu của mình. Không gọi cọc là thanh toán toàn bộ; không hiển thị “đã nhận tiền” khi mới chọn phương thức. Không yêu cầu tích hợp cổng ngân hàng trong phạm vi mặc định. |
 | B6 | **P0 · Nghiệm thu giao dịch có sẵn** | Kiểm tra đặt trùng từ hai phiên, hết hạn và xác nhận cọc đồng thời, đổi/gia hạn, sửa giá dịch vụ sau ghi nhận, checkout hai lần, thất bại giữa transaction và tích điểm. | Không giữ trùng/thu hai lần/cộng điểm hai lần; rollback không để hóa đơn dở/phòng sai. Demo và SQL cùng kết quả nghiệp vụ. Bàn giao kết quả đối chiếu cho TV1/A2 và TV3/C1/C6. |
 
-Backend TV2: `service/bookingService.js`, `service/billingService.js`, `service/helpers.js`, `shared/validation.js`; TV1 ghép command/route được TV2 bàn giao. Không tự thay file SQL khi TV3 đang tích hợp.
+Backend TV2: `src/models/{bookings,stays,service-usage,invoices}/`, controller/route cùng tên, `src/models/_shared/stayRules.js`, `src/core/validation/fields.js`. Không tự sửa SQL khi TV3 đang tích hợp.
 
-Frontend TV2: `views/public.ejs`, `views/invoice.ejs`, phần search/mybookings/bookings/stays/usage/invoices của workspace, phần tìm phòng trong `common.js`, CSS riêng các màn này.
+Frontend TV2: `src/views/{home,bookings,stays,service-usage,invoices}/`, JavaScript module tương ứng; bản in `src/views/invoices/print.ejs`; phần tìm phòng và CSS các màn này.
 
 ## 5. TV3 — Phòng, buồng phòng, báo cáo và database
 
@@ -66,56 +68,42 @@ Frontend TV2: `views/public.ejs`, `views/invoice.ejs`, phần search/mybookings/
 | C5 | P2 · Tối ưu sau luồng chính | Bổ sung truy vấn có điều kiện/phân trang/tổng hợp cho repository thay `list()` toàn bảng; ưu tiên audit, tài khoản, khách và báo cáo theo contract A6. | Tham số hóa, whitelist sắp xếp, giới hạn page size; count/trang đúng; SQL/demo cùng contract. Không đổi interface đang dùng mà thiếu cập nhật service. Không bắt buộc tối ưu mọi truy vấn trước khi demo nghiệp vụ chạy được. |
 | C6 | P1 · Tích hợp dữ liệu và tài liệu | Seed có kịch bản biên cùng ngày/gia hạn/lễ/đang ở/cọc/quá hạn/dọn phòng; kiểm tra tính nhất quán JSON/SQL. Cập nhật hướng dẫn máy nhóm, quyền backup và quy tắc thời gian theo code mới. | Người khác làm theo tài liệu trên máy SQL mới chạy được. Ghi rõ các kịch bản, số lượng từng adapter và kết quả nghiệm thu; không tuyên bố JSON/SQL có số account giống nhau khi hiện khác. Không commit .env/data/.bak. |
 
-Backend TV3: `service/catalogService.js`, `service/housekeepingService.js`, toàn bộ `database/`. Khi triển khai có thể tạo `service/reportService.js`; hiện **chưa có file này**, không coi là phần đã hoàn tất. TV1 ghép route/readService.
+Backend TV3: `src/models/{rooms,room-types,services,holiday-rates,housekeeping,reports,dashboard}/`, controller/route cùng tên, `src/models/_shared/` phần adapter/mapping/seed, `src/config/db.js` và `database/`. Model reports/audit đã có khung đọc dữ liệu thật nhưng lọc/tổng hợp đầy đủ vẫn còn TODO.
 
-Frontend TV3: phần board/catalog/overview/reports trong workspace, upload ảnh phòng, form gắn tiện ích/giá lễ và CSS các màn này. TV2 dùng dữ liệu ảnh/tiện ích đó trên trang công khai.
+Frontend TV3: `src/views/{rooms,room-types,services,holiday-rates,housekeeping,reports,dashboard}/`, JavaScript module tương ứng và bốn file `fields.js` theo đối tượng; CSS các màn này.
 
 ## 6. Giao việc theo file backend
 
 Ở đầu từng file backend có `TASK-BAN-GIAO | Phụ trách | Mã việc`, mô tả cụ thể cần làm. Dùng tìm toàn repo `TASK-BAN-GIAO` hoặc `B1`, `A3`, `C1` để tới vị trí. Các file helper/config không nhất thiết phải viết lại; có task nghiệm thu/phối hợp để tránh bỏ sót.
 
-| File | Người giữ file | Mã việc |
-| `backend/service/authService.js` | TV1 | A1, A4 |
-| `backend/service/accountService.js` | TV1 | A1 |
-| `backend/service/profileService.js` | TV1 | A2 |
-| `backend/service/customerService.js` | TV1 | A2 |
-| `backend/service/systemService.js` | TV1 | A3, A5 |
-| `backend/service/readService.js` | TV1 | A2, A3, A6, C4 |
-| `backend/service/bookingService.js` | TV2 | B1, B2, B3, B5, B6 |
-| `backend/service/billingService.js` | TV2 | B4, B6 |
-| `backend/service/helpers.js` | TV2 | B1, B2, B4, C1 |
-| `backend/service/housekeepingService.js` | TV3 | C3 |
-| `backend/service/catalogService.js` | TV3 | C2 |
-| `backend/service/index.js` | TV1 | A6 |
-| `backend/controllers/apiController.js` | TV1 | A6, B2, C4 |
-| `backend/routes/webRoutes.js` | TV1 | A6, B3, C2, C4 |
-| `backend/middleware/security.js` | TV1 | A1, A4, A6 |
-| `backend/app.js` | TV1 | A6 |
-| `backend/config/env.js` | TV1 | A4, A5, A6, C1 |
-| `backend/shared/permissions.js` | TV1 | A1, A6 |
-| `backend/shared/validation.js` | TV2 | B1, B4, A2 |
-| `backend/shared/passwords.js` | TV1 | A1 |
-| `backend/shared/errors.js` | TV1 | A6 |
-| `backend/database/connection.js` | TV3 | C1, C6 |
-| `backend/database/index.js` | TV3 | C1 |
-| `backend/database/schema.js` | TV3 | C1, C2, C4 |
-| `backend/database/repositories/sqlRepository.js` | TV3 | C1, C4, C5 |
-| `backend/database/repositories/demoRepository.js` | TV3 | C1, C5, C6 |
-| `backend/database/seed/demoData.js` | TV3 | C6, B1 |
-| `backend/database/sql/001_create_database.sql` | TV3 | C1, C2 |
-| `backend/database/sql/002_constraints_and_logic.sql` | TV3 | C1, B1, B2, B6 |
-| `backend/database/sql/003_seed_demo_data.sql` | TV3 | C6 |
+| Phần code hiện có | Người giữ file | Mã việc |
+|---|---|---|
+| `src/models/{auth,accounts}/`, controller/route cùng tên | TV1 | A1, A4 |
+| `src/models/{profile,customers,memberships}/`, controller/route cùng tên | TV1 | A2 |
+| `src/models/{settings,backups,audit}/`, controller/route cùng tên | TV1 | A3, A5 |
+| `src/models/workspace/`, `src/core/`, `src/routes/index.js`, `src/models/index.js` | TV1 | A6 |
+| `src/models/bookings/`, `src/models/stays/`, controller/route cùng tên | TV2 | B1, B2, B3, B5, B6 |
+| `src/models/{service-usage,invoices}/`, controller/route cùng tên | TV2 | B4, B6 |
+| `src/models/_shared/stayRules.js`, `src/core/validation/fields.js` | TV2 | B1, B2, B4 |
+| `src/models/{rooms,room-types,services,holiday-rates}/`, controller/route cùng tên | TV3 | C2 |
+| `src/models/housekeeping/`, controller/route cùng tên | TV3 | C3 |
+| `src/models/{reports,dashboard}/`, controller/route cùng tên | TV3 | C4 |
+| `src/config/db.js`, `src/models/_shared/{sql.model,demo.model,store,definitions}.js` | TV3 | C1, C5 |
+| `src/models/<module>/schema.js`, `database/01_schema.sql`, `02_programmability.sql` | TV3 | C1, C2 |
+| `src/models/_shared/demo.seed.js`, `database/03_seed.sql`, `scripts/generate-dictionary.js` | TV3 | C6 |
+
+Đường dẫn chính xác theo từng module xem `MODULES.md`. `_shared/stayRules.js` do TV2 giữ; adapter/mapping/seed do TV3 giữ. Không giao trọn thư mục `_shared` cho cả hai người cùng sửa không phân biệt file.
 
 ## 7. Làm song song, tránh sửa đè
 
-1. **TV1/A6 trước:** tách khung UI dùng chung khỏi màn hình. Đường dẫn dự kiến `frontend/public/js/modules/system.js`, `operations.js`, `facility.js` chỉ là đề xuất; **chưa tồn tại** trong lần bàn giao này. Không tạo file rỗng rồi đánh dấu xong.
+1. **Đã tách cấu trúc A6:** mỗi đối tượng có route/controller/model/view, frontend JS từng module. Mở `docs/MODULES.md` để chọn đường dẫn hiện có; không tạo lại `workspace.js` chung. TV1 giữ core/layout, người làm chỉ sửa module của mình và bàn giao hợp đồng dùng chung.
 2. **TV2/B1 và TV3/C1 cùng chốt ví dụ ngày/giá:** payload đang là `YYYY-MM-DD`, không khôi phục datetime-local hoặc các quy tắc giờ cũ khi chưa được yêu cầu. Ghi ví dụ same-day, 11:59/12:00/13:59/14:00, UTC so với ngày Việt Nam và ngày lễ; quy định rõ trường hợp qua nửa đêm.
 3. **Contract API:** TV2 bàn giao tên command/payload/result cho gia hạn/phiếu thuê; TV3 bàn giao truy vấn báo cáo/ảnh/tiện ích; TV1 ghép controller/routes/menu và chuẩn phản hồi. Từng chủ module chịu trách nhiệm kiểm tra quyền server của chức năng mình.
 4. **SQL/schema do TV3 giữ:** TV1/TV2 gửi thay đổi dữ liệu cần thiết; TV3 cập nhật đồng bộ SQL/mapping/seed, ghi cách nâng cấp khi DB đã tồn tại. Giữ cấu trúc ba file SQL chính, không DROP dữ liệu của thành viên.
 5. **Nhánh gợi ý:** `tv1-he-thong`, `tv2-luu-tru`, `tv3-phong-database`. Người làm ghép cập nhật ghi rõ màn hình/command/schema bị ảnh hưởng; không đẩy `.env`, `node_modules`, JSON demo, ảnh cá nhân hoặc `.bak`.
 6. Nghiệm thu phần mình bằng vai trò đúng/sai, dữ liệu rỗng/lỗi/mất kết nối, màn hình desktop/mobile và SQL Server thật; ghi kết quả trong phần bàn giao. **Không thêm thư mục/file/script test tự động**, theo yêu cầu hiện tại.
 
-File dùng chung do TV1 ghép: `apiController.js`, `webRoutes.js`, `readService.js`, `service/index.js`, `views/workspace.ejs`. File `validation.js` do TV2 giữ, nhận giới hạn trường của TV1/TV3. Repository/SQL do TV3 giữ. Các chức năng giao nhau phải bàn giao interface, không sửa cùng file một lúc.
+File dùng chung do TV1 ghép: `src/routes/index.js`, `src/models/index.js`, `src/models/workspace/`, `src/views/layouts/`. File `src/core/validation/fields.js` do TV2 giữ, nhận giới hạn trường của TV1/TV3. Repository/SQL do TV3 giữ. Các chức năng giao nhau phải bàn giao interface, không sửa cùng file một lúc.
 
 ## 8. Việc cần chốt, không tự coi là bắt buộc đã duyệt
 
@@ -130,7 +118,7 @@ File dùng chung do TV1 ghép: `apiController.js`, `webRoutes.js`, `readService.
 
 ## 9. Thứ tự hoàn thành đề nghị
 
-- **Đợt 1:** TV1/A6 tách phần làm chung; TV2/B1 sửa đặt hôm nay; TV3/C1 chạy SQL và thống nhất ngày/giờ/giá.
+- **Đợt 1:** TV1/A6 nghiệm thu core/module đã tách; TV2/B1 sửa đặt hôm nay; TV3/C1 chạy SQL và thống nhất ngày/giờ/giá.
 - **Đợt 2:** mỗi người hoàn thiện các P1 thuộc module, đồng thời bàn giao payload/route/schema. A4 triển khai khi có cấu hình SMS; chưa có thì báo rõ giới hạn.
 - **Đợt 3:** TV1 nghiệm thu tài khoản/khách/thẻ/audit/backup; TV2 nghiệm thu luồng nhận → dịch vụ → đổi/gia hạn → bảng kê → hóa đơn; TV3 đối chiếu SQL, sơ đồ/báo cáo và cập nhật tài liệu. C5 tối ưu sau khi luồng chính ổn.
 

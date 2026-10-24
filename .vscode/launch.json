@@ -5,7 +5,7 @@
       "type": "node",
       "request": "launch",
       "name": "Hotel Web — F5",
-      "program": "${workspaceFolder}/server.js",
+      "program": "${workspaceFolder}/src/server.js",
       "cwd": "${workspaceFolder}",
       "envFile": "${workspaceFolder}/.env",
       "console": "integratedTerminal",

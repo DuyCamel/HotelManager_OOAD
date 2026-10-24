@@ -1,5 +1,5 @@
 /** Kiểm tra đúng database + phiên bản schema, không in mật khẩu. */
-const repo = require("../backend/database");
+const repo = require("../src/models/_shared/store");
 (async () => {
   try {
     await repo.init();

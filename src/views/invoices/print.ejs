@@ -1,0 +1,80 @@
+<!--
+TASK-BAN-GIAO (TODO) | Phụ trách: TV2 | Mã việc: B4, B6
+Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+Đối chiếu bảng kê trước thu tiền với hóa đơn sau thu; hiển thị phương thức/chứng từ và số tiền nhất quán.
+Nghiệm thu in/lưu PDF, tiếng Việt, ngắt trang nhiều dòng và quyền xem hóa đơn của mình.
+Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+-->
+<!-- Chứng từ đã chốt, chỉ hiển thị và in/lưu PDF. -->
+<%- include('../partials/head') %>
+<body class="invoice-page">
+<main class="paper">
+<a class="brand" href="/app">A<span>✦</span> AURORA</a>
+<h1>Hóa đơn lưu trú</h1>
+<p>
+<%= hotel.hotelName %> · <%= hotel.address %> · <%= hotel.hotline %>
+</p>
+<hr>
+<div class="split">
+<div>
+<small>KHÁCH HÀNG</small>
+<h3>
+<%= customer.name %>
+</h3>
+<p>
+<%= customer.phone %>
+</p>
+</div>
+<div>
+<strong>
+<%= invoice.id %>
+</strong>
+<p>
+<%= new Date(invoice.issuedAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}) %>
+</p>
+<span class="badge PAID">Đã thanh toán</span>
+</div>
+</div>
+<table>
+<thead>
+<tr>
+<th>Nội dung</th>
+<th>Số lượng</th>
+<th>Đơn giá</th>
+<th>Thành tiền</th>
+</tr>
+</thead>
+<tbody>
+<% lines.forEach(l=>{ %>
+<tr>
+<td>
+<%= l.description %>
+</td>
+<td>
+<%= l.quantity %>
+</td>
+<td>
+<%= Number(l.unitPrice).toLocaleString('vi-VN') %>
+</td>
+<td>
+<%= Number(l.quantity*l.unitPrice).toLocaleString('vi-VN') %> ₫</td>
+</tr>
+<% }) %>
+</tbody>
+</table>
+<div class="invoice-totals">
+<p>Tổng cộng <strong>
+<%= Number(invoice.roomCharge+invoice.serviceCharge+invoice.surcharge-invoice.discount).toLocaleString('vi-VN') %> ₫</strong>
+</p>
+<p>Đã đặt cọc <strong>
+<%= Number(invoice.deposit).toLocaleString('vi-VN') %> ₫</strong>
+</p>
+<h3>Thanh toán còn lại <span>
+<%= Number(invoice.roomCharge+invoice.serviceCharge+invoice.surcharge-invoice.discount-invoice.deposit).toLocaleString('vi-VN') %> ₫</span>
+</h3>
+</div>
+<p class="muted">Cảm ơn bạn đã lựa chọn Aurora. Hẹn gặp lại!</p>
+<button id="print" class="primary">In / Lưu PDF</button>
+</main>
+</body>
+</html>

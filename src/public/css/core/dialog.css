@@ -1,0 +1,501 @@
+/* Dialog, feedback and printable invoice. */
+dialog {
+  border: 0;
+  border-radius: 18px;
+  padding: 28px;
+  width: 650px;
+  max-width: 94vw;
+  max-height: 90vh;
+  box-shadow: 0 25px 100px #173f3530;
+}
+dialog::backdrop {
+  background: #13291f80;
+  backdrop-filter: blur(3px);
+}
+.dialog-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.dialog-head .eyebrow {
+  font-size: 8px;
+}
+.dialog-head h2 {
+  font-size: 23px;
+  margin: 0;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.form-grid label:has(textarea) {
+  grid-column: 1/-1;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: end;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+  margin-top: 20px;
+}
+.usage-intro {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+.usage-intro h2 {
+  margin-bottom: 5px;
+}
+.usage-intro p {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+.usage-intro .eyebrow {
+  margin-bottom: 8px;
+}
+.dialog-actions button {
+  font-size: 12px;
+}
+#toast {
+  position: fixed;
+  bottom: 25px;
+  left: 50%;
+  transform: translate(-50%, 20px);
+  background: var(--forest);
+  color: white;
+  padding: 14px 25px;
+  border-radius: 8px;
+  box-shadow: 0 8px 30px #0002;
+  opacity: 0;
+  transition: all 0.2s;
+  z-index: 100;
+  pointer-events: none;
+  font-size: 12px;
+  max-width: 90vw;
+}
+#toast.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.invoice-page {
+  background: #e9ede6;
+  padding: 40px;
+}
+.paper {
+  max-width: 850px;
+  background: white;
+  padding: 55px;
+  margin: auto;
+  box-shadow: 0 10px 40px #0001;
+}
+.paper h1 {
+  margin-top: 40px;
+}
+.paper p {
+  font-size: 12px;
+}
+.split {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+  margin: 30px 0;
+}
+.invoice-totals {
+  max-width: 400px;
+  margin: 30px 0 30px auto;
+}
+.invoice-totals p,
+.invoice-totals h3 {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+}
+.invoice-totals h3 {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+  font-size: 15px;
+}
+.error-page {
+  padding: 15vh 10vw;
+}
+.error-page h1 {
+  max-width: 600px;
+}
+@media (min-width: 1600px) {
+  .room-grid {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}
+@media (max-width: 1200px) {
+  .room-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .content {
+    padding: 30px 25px;
+  }
+  .topbar {
+    padding: 0 25px;
+  }
+  .stats {
+    gap: 10px;
+  }
+  .stats article {
+    padding: 16px;
+  }
+  .stats article i {
+    display: none;
+  }
+  .hero h1 {
+    font-size: 50px;
+  }
+  .hero {
+    min-height: 530px;
+  }
+  .room-types {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .auth-shell {
+    margin: 100px 30px 40px;
+  }
+  .public-nav {
+    padding: 0 30px;
+  }
+  .hero,
+  .section {
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+  .search-strip {
+    margin-left: 30px;
+    margin-right: 30px;
+  }
+}
+@media (max-width: 850px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.2s;
+    box-shadow: 10px 0 40px #0002;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .workspace-main {
+    margin-left: 0;
+  }
+  #menu-toggle {
+    display: block;
+    padding: 5px;
+    border: 0;
+    background: none;
+    font-size: 18px;
+  }
+  .breadcrumb {
+    margin-right: auto;
+    margin-left: 20px;
+  }
+  .topbar {
+    height: 75px;
+  }
+  .room-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .hero {
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    padding-top: 25px;
+    min-height: 490px;
+  }
+  .hero h1 {
+    font-size: 41px;
+  }
+  .hero p {
+    font-size: 12px;
+  }
+  .hero-art {
+    padding: 25px 25px 0;
+  }
+  .hero-detail {
+    margin-top: 35px;
+  }
+  .public-nav nav {
+    display: none;
+  }
+  .search-strip form,
+  .search-form {
+    grid-template-columns: 1fr 1fr;
+  }
+  .search-strip .primary {
+    align-self: end;
+  }
+  .service-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .auth-story {
+    padding: 45px 30px;
+  }
+  .auth-story h1 {
+    font-size: 36px;
+  }
+  .auth-form {
+    padding: 40px 30px;
+  }
+  .auth-shell {
+    min-height: 650px;
+  }
+  .report-filter {
+    flex-wrap: wrap;
+  }
+  .stats .money-stat {
+    font-size: 17px;
+  }
+  .search-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  .content {
+    padding: 25px 16px;
+  }
+  .topbar {
+    padding: 0 16px;
+  }
+  .breadcrumb {
+    display: none;
+  }
+  .user-menu {
+    margin-left: auto;
+  }
+  .user-menu strong {
+    max-width: 130px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .page-heading {
+    align-items: start;
+    gap: 10px;
+  }
+  .page-heading h1 {
+    font-size: 23px;
+  }
+  .page-heading p {
+    max-width: 220px;
+  }
+  .page-heading .small {
+    padding: 9px;
+    font-size: 10px;
+  }
+  .stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .stats article {
+    padding: 15px;
+  }
+  .stats article span {
+    font-size: 9px;
+  }
+  .stats article strong {
+    font-size: 27px;
+  }
+  .room-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 9px;
+  }
+  .room-tile {
+    padding: 12px;
+    min-height: 115px;
+  }
+  .room-tile .room-number {
+    font-size: 15px;
+  }
+  .board-panel {
+    padding: 16px;
+  }
+  .room-legend {
+    gap: 9px;
+    flex-wrap: wrap;
+  }
+  .room-legend .badge {
+    font-size: 9px;
+  }
+  .table-toolbar {
+    padding: 15px;
+    gap: 10px;
+  }
+  .search-box {
+    width: 220px;
+  }
+  .search-box input {
+    font-size: 10px;
+  }
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-grid label {
+    grid-column: 1/-1;
+  }
+  dialog {
+    padding: 22px;
+  }
+  .report-filter {
+    gap: 10px;
+  }
+  .report-filter input {
+    width: 135px;
+  }
+  .report-filter .small {
+    padding: 7px;
+  }
+  .bar-row {
+    grid-template-columns: 55px 1fr 95px;
+    gap: 7px;
+    font-size: 9px;
+  }
+  .workspace-footer {
+    padding: 18px 16px;
+    font-size: 8px;
+  }
+  .public-nav {
+    height: 80px;
+    padding: 0 20px;
+  }
+  .public-nav .brand {
+    font-size: 18px;
+  }
+  .public-nav .outline {
+    padding: 7px 12px;
+    font-size: 13px;
+  }
+  .hero {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    padding: 30px 24px 0;
+  }
+  .hero h1 {
+    font-size: 49px;
+    margin: 20px 0;
+  }
+  .hero-art {
+    height: 300px;
+    margin-top: 20px;
+    border-radius: 160px 160px 0 0;
+  }
+  .hero-art .arch-art {
+    min-height: 270px;
+  }
+  .hero-detail {
+    margin: 35px 0 10px;
+  }
+  .search-strip {
+    margin: 0;
+    padding: 20px;
+  }
+  .search-strip form {
+    gap: 12px;
+  }
+  .search-strip label {
+    font-size: 10px;
+  }
+  .search-strip input {
+    font-size: 11px;
+    padding: 10px 7px;
+  }
+  .section {
+    padding: 50px 22px;
+  }
+  .section-title {
+    display: block;
+  }
+  .section-title h2 {
+    font-size: 29px;
+    margin-bottom: 15px;
+  }
+  .room-types {
+    grid-template-columns: 1fr;
+  }
+  .service-section > h2 {
+    font-size: 30px;
+  }
+  .service-grid {
+    gap: 20px;
+  }
+  .usage-intro {
+    display: block;
+  }
+  .usage-intro .primary {
+    margin-top: 16px;
+  }
+  .service-grid h3 {
+    font-size: 14px;
+  }
+  footer {
+    display: block;
+    padding: 30px 24px;
+  }
+  footer .brand {
+    margin-bottom: 25px;
+  }
+  footer > small {
+    display: block;
+    margin-top: 25px;
+  }
+  .auth-brand {
+    position: static;
+    padding: 25px;
+  }
+  .auth-shell {
+    grid-template-columns: 1fr;
+    margin: 0 15px 30px;
+  }
+  .auth-story {
+    display: none;
+  }
+  .auth-form {
+    padding: 30px;
+  }
+  .search-cards {
+    grid-template-columns: 1fr;
+  }
+  .paper {
+    padding: 25px;
+  }
+  .invoice-page {
+    padding: 15px;
+  }
+  .split {
+    font-size: 11px;
+  }
+  .paper table {
+    font-size: 10px;
+  }
+  .paper th,
+  .paper td {
+    padding: 10px 7px;
+  }
+}
+@media print {
+  .invoice-page {
+    background: white;
+    padding: 0;
+  }
+  .paper {
+    box-shadow: none;
+    padding: 10px;
+    max-width: none;
+  }
+  #print {
+    display: none;
+  }
+  .paper a {
+    color: var(--ink);
+  }
+}

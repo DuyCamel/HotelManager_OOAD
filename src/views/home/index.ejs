@@ -1,0 +1,137 @@
+<!--
+TASK-BAN-GIAO (TODO) | Phụ trách: TV2 | Mã việc: B5, C2
+Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+Hoàn thiện tìm phòng/chi tiết/giữ chỗ và thông báo giá–cọc; dùng ảnh/tiện ích TV3 cung cấp.
+Giữ form chỉ chọn ngày và giờ trả 12:00; không tự đổi sang datetime hoặc khôi phục quy tắc cũ.
+Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+-->
+<!-- Trang giới thiệu khách sạn, tìm phòng và danh mục dịch vụ công khai. -->
+<%- include('../partials/head') %>
+<body class="public-page">
+<header class="public-nav">
+<a class="brand" href="/">A<span>✦</span> AURORA</a>
+<nav>
+<a href="#rooms">Phòng & trải nghiệm</a>
+<a href="#services">Dịch vụ</a>
+<a href="#contact">Liên hệ</a>
+</nav>
+<a class="outline" href="<%= user?'/portal':'/login' %>">
+<%= user?'Không gian của tôi':'Đăng nhập' %> ↗</a>
+</header>
+<main>
+<section class="hero">
+<div>
+<span class="eyebrow">A SENSE OF BELONGING</span>
+<h1>Nơi bạn tìm thấy<br>nhịp sống <em>riêng.</em>
+</h1>
+<p>Một không gian bình yên giữa thành phố.<br>Chạm đến những trải nghiệm giản đơn và tinh tế.</p>
+<a class="primary" href="#rooms">Khám phá kỳ nghỉ ↘</a>
+<div class="hero-detail">01 / 03 <span>COMFORT. CULTURE. CONNECTION.</span>
+</div>
+</div>
+<div class="hero-art">
+<div class="arch-art">
+<div class="sun">
+</div>
+<div class="mountain">
+</div>
+<div class="water">
+</div>
+</div>
+<span>AURORA<br>EST. 2026</span>
+</div>
+</section>
+<section class="search-strip">
+<form id="public-search">
+<label>Ngày nhận phòng<input name="startAt" type="date" required>
+</label>
+<label>Ngày trả phòng (12:00)<input name="endAt" type="date" required>
+</label>
+<label>Khách<input name="guests" type="number" value="2" min="1" max="20" required>
+</label>
+<button class="primary">Tìm phòng trống ↗</button>
+</form>
+<p class="form-message" role="status">
+</p>
+</section>
+<section class="section" id="rooms">
+<div class="section-title">
+<div>
+<span class="eyebrow">YOUR PERSONAL RETREAT</span>
+<h2>Chọn không gian của bạn</h2>
+</div>
+<p class="muted">Mỗi căn phòng, một cảm hứng.<br>Giá theo ngày · đã gồm tiện nghi cơ bản.</p>
+</div>
+<div id="search-results">
+</div>
+<div class="room-types">
+<% data.types.forEach((t,i)=>{ %>
+<article class="type-card">
+<div class="room-illustration variant-<%= i%3 %>">
+<div class="window">
+</div>
+<div class="bed">
+</div>
+<span>0<%= i+1 %>
+</span>
+</div>
+<div class="type-body">
+<span class="eyebrow">AURORA COLLECTION</span>
+<h3>
+<%= t.name %>
+</h3>
+<p class="muted">
+<%= t.capacity %> khách · <%= t.beds %> giường · <%= t.amenities %>
+</p>
+<div class="price">
+<strong>
+<%= Number(t.dailyPrice).toLocaleString('vi-VN') %> ₫</strong>
+<span>/ ngày</span>
+<a href="/login">Đặt phòng ↗</a>
+</div>
+</div>
+</article>
+<% }) %>
+</div>
+</section>
+<section class="service-section section" id="services">
+<span class="eyebrow">THOUGHTFUL IN EVERY DETAIL</span>
+<h2>Những điều nhỏ bé,<br>tạo nên kỳ nghỉ trọn vẹn.</h2>
+<div class="service-grid">
+<% data.services.slice(0,8).forEach((s,i)=>{ %>
+<article>
+<span class="service-icon">
+<%= ['◈','☕','✦','♧'][i%4] %>
+</span>
+<h3>
+<%= s.name %>
+</h3>
+<p>
+<%= s.description %>
+</p>
+<small>
+<%= Number(s.price).toLocaleString('vi-VN') %> ₫ / <%= s.unit %>
+</small>
+</article>
+<% }) %>
+</div>
+</section>
+</main>
+<footer id="contact">
+<a class="brand" href="/">A<span>✦</span> AURORA</a>
+<div>
+<strong>
+<%= data.hotel.hotelName %>
+</strong>
+<p>
+<%= data.hotel.address %>
+</p>
+<p>Hotline: <%= data.hotel.hotline %>
+</p>
+</div>
+<small>Đồ án HotelManager OOAD · Web 2.0<% if(config.mode==='demo'){ %>
+<br>Đang dùng dữ liệu demo cục bộ.<% } %>
+</small>
+</footer>
+</body>
+</html>

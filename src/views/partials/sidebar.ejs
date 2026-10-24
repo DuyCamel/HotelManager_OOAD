@@ -1,0 +1,30 @@
+<aside class="sidebar">
+<a class="brand" href="/">A<span>✦</span> AURORA</a>
+<span class="sidebar-caption">HOTEL WORKSPACE</span>
+<nav id="side-nav">
+<% const items=[['overview','◈','Tổng quan','reports'],['board','▦','Sơ đồ phòng','board'],['bookings','▤','Đặt phòng','bookings'],['stays','⇄','Nhận & trả phòng','stays'],['customers','♙','Khách hàng','customers'],['usage','♧','Dịch vụ sử dụng','usage'],['cards','◇','Thẻ thành viên','cards'],['invoices','▧','Hóa đơn','invoices'],['catalog','▥','Phòng & danh mục','catalog'],['accounts','♟','Tài khoản','accounts'],['reports','↗','Báo cáo','reports'],['settings','⚙','Cấu hình','admin'],['backups','▣','Sao lưu/Khôi phục','admin'],['audit','▤','Nhật ký','admin']];items.forEach(([id,icon,title,permission])=>{if(has(permission)){ %>
+<button data-page="<%= id %>">
+<span>
+<%= icon %>
+</span>
+<%= title %>
+</button>
+<% }});if(user.role==='CUSTOMER'){ %>
+<button data-page="search">
+<span>⌕</span>Tìm & đặt phòng</button>
+<button data-page="mybookings">
+<span>▤</span>Đặt phòng của tôi</button>
+<button data-page="invoices">
+<span>▧</span>Hóa đơn của tôi</button>
+<button data-page="mycard">
+<span>◇</span>Thẻ của tôi</button>
+<% } %>
+<button data-page="profile">
+<span>○</span>Hồ sơ cá nhân</button>
+</nav>
+<div class="sidebar-bottom">
+<span class="mode-dot">
+</span> <%= config.mode==='demo'?'Dữ liệu demo':'SQL Server' %>
+<small>AURORA · HOSPITALITY OS</small>
+</div>
+</aside>

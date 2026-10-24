@@ -1,31 +1,14 @@
-# Kiến trúc và quy ước
+# Kiến trúc MVC theo đối tượng
 
-HTTP → routes/controller → service → repository → SQL Server hoặc JSON demo. Frontend không truy cập database hay giữ mật khẩu kết nối. Controller ánh xạ danh sách command cố định; service kiểm tra vai trò, dữ liệu, trạng thái và thực hiện transaction. Database adapter chỉ chịu trách nhiệm lưu/đọc và ánh xạ kiểu.
+Chi tiết thư mục và quyền sở hữu ở [MODULES.md](MODULES.md). Luồng: route → controller → model → view. Models chứa nghiệp vụ (được chuyển từ service trước đây) và SQL adapter dùng chung; không bỏ transaction hoặc kiểm tra quyền khi chuyển tên lớp.
 
-- `backend/database/`: sửa schema, ràng buộc SQL, kết nối hoặc adapter ở đây.
-- `backend/service/`: sửa nghiệp vụ tại đây; không import Express, không dựa vào việc nút có bị ẩn trên UI hay không.
-- `frontend/views/`: HTML server-render với EJS escaping. `frontend/public/js/workspace.js` tạo form/bảng/sơ đồ và gọi `/api/action/<command>`; thông tin đưa vào HTML được escape.
-- `backend/shared/permissions.js`: danh sách quyền dùng chung ở server. Không lấy role hoặc accountId người thực hiện từ request body; lấy từ session đã kiểm tra lại với account hiện tại.
+- `src/server.js` khởi tạo store/model/app và job nhả giữ chỗ. `src/app.js` gắn Express, session, CSRF, locals và route.
+- `config/db.js` chỉ quản lý kết nối/pool; mọi SQL chạy trong `models/`. `database/` chứa đúng ba script khởi tạo/ràng buộc/seed.
+- Model từng đối tượng giữ nghiệp vụ; `_shared` giữ store, mapping tổng hợp, adapter SQL/demo, quy tắc ngày/giá và audit helper thật sự dùng chung.
+- View từng module dùng layout và partial. Frontend module riêng theo đối tượng; core chỉ giữ state/HTTP/table/dialog. Menu điều hướng đến route/controller/view của module.
+- Runtime SQL giữ transaction SERIALIZABLE và application lock; input tham số hóa; chứng từ PAID/ledger/audit giữ bất biến. Demo JSON dùng hàng đợi ghi/clone/rename.
+- RBAC và session ở `core/auth/`; role/actor lấy từ account/session hiện hành. HTTP ghi giữ CSRF, cookie HttpOnly/SameSite. Không trả password hash.
+- Thời gian lưu UTC, nghiệp vụ ngày theo APP_TIME_ZONE. Hiện chọn ngày, trả 12:00, chặn check-in 12:00–14:00 ở JS. B1/C1 vẫn cần sửa đặt hôm nay và đồng bộ SQL theo phân công; refactor không thay chính sách để che lỗi.
+- Ảnh báo hỏng giới hạn 3 MB, PNG/JPEG kiểm tra chữ ký, tên do server sinh, không public thư mục data. Model không biết Express; controller chịu IO upload và gọi model báo hỏng.
 
-Ghi nghiệp vụ SQL chạy transaction SERIALIZABLE và application lock `HotelManager.WebWrite`, input tham số hóa, không ghép dữ liệu người dùng vào tên bảng/cột. JSON demo dùng hàng đợi ghi, clone trạng thái và rename file nguyên tử. Không chạy nhiều Node process cùng ghi một file demo.
-
-Phiếu: `PENDING → CONFIRMED → CHECKED_IN → COMPLETED`; `PENDING → CANCELLED` khi người dùng hủy hoặc hết hạn giữ chỗ chưa cọc. Hóa đơn: tạo DRAFT, thêm dòng, thêm chứng từ, xác nhận PAID, cộng điểm, đóng phiếu thuê và chuyển phòng DIRTY trong cùng transaction. SQL trigger kiểm tra tổng dòng/thanh toán/sổ điểm và ngăn sửa chứng từ đã chốt.
-
-Thời gian lưu UTC; hiển thị mặc định Asia/Ho_Chi_Minh. Người dùng chỉ chọn ngày: hệ thống chuẩn hóa giờ trả phòng là 12:00 theo `APP_TIME_ZONE`; nhận phòng được phép ngoài khung 12:00–14:00 dành cho buồng phòng. Giao diện không cho cấu hình lại hai quy tắc này. Chính sách giá hiện dùng số ngày UTC của khoảng lưu trú, tối thiểu 1 ngày, cộng giá lễ theo từng ngày UTC. `APP_TIME_ZONE` đang là cấu hình định hướng; giao diện hiện cố định Asia/Ho_Chi_Minh, chưa hỗ trợ đổi múi giờ từ UI.
-
-HTTP ghi yêu cầu CSRF token lấy từ meta tag, cookie HttpOnly/SameSite Lax. Mật khẩu băm PBKDF2 SHA256 120.000 vòng, salt ngẫu nhiên cho tài khoản tạo mới. Sau đăng nhập session được regenerate. Khóa/đổi quyền/đổi mật khẩu tăng AuthVersion; request kế tiếp kết thúc phiên cũ. Production bị chặn cho tới khi bổ sung session store phù hợp và OTP thật.
-
-Ảnh báo hỏng giới hạn 3 MB, một file, kiểm tra chữ ký PNG/JPEG, tên UUID do server sinh, không phục vụ `data/` như thư mục public. Chỉ người có quyền sơ đồ truy cập ảnh đã gắn báo hỏng. Không ghi password/hash vào API workspace, CSV hay log.
-
-## Thao tác nghiệm thu thủ công
-
-1. Chạy demo, đăng nhập từng email mẫu; kiểm tra menu của Quản lý/Nhân viên/Buồng phòng và thử URL API trái quyền (phải từ chối).
-2. Admin tạo/sửa danh mục; thêm khách và cấp thẻ. Nhân viên tạo phiếu tại quầy với giờ nhận hiện tại và cọc nhỏ hơn tiền phòng.
-3. Nhận phòng bằng giấy tờ, ghi dịch vụ, đổi giá danh mục sau đó để kiểm tra dòng phát sinh vẫn giữ giá cũ. Thử hủy một dòng dịch vụ chưa lên hóa đơn.
-4. Trả phòng, đối chiếu bảng kê, xem/in hóa đơn, kiểm tra điểm và phòng Cần dọn. Thử trả lần hai (phải từ chối).
-5. Buồng phòng vào sơ đồ, xác nhận dọn và báo hỏng với ảnh; thử ảnh sai định dạng hoặc quá kích thước.
-6. Khách đăng ký bằng email mới, tìm phòng, giữ online và xem phiếu của mình; thử truy cập hóa đơn khách khác (không được).
-7. Admin khóa/đổi vai trò nhân viên đang đăng nhập ở trình duyệt khác; request sau của phiên cũ phải bị từ chối. Chuyển Admin bằng OTP demo và kiểm tra cả hai phiên phải đăng nhập lại.
-8. Sau khi cấu hình SQL Server thật, lặp lại các luồng; kiểm tra tiền, điểm, lịch trùng và sao lưu trên đúng máy SQL.
-
-Không lưu test tự động trong repo theo yêu cầu. Mọi kiểm tra phát triển tạm thời nằm ngoài mã nguồn.
+Nghiệm thu thủ công: đăng nhập từng vai trò; kiểm tra URL trái quyền; tạo/nhận/dịch vụ/đổi/trả phòng; hóa đơn/điểm và rollback; dọn/báo hỏng; khách chỉ xem phiếu/hóa đơn mình; khóa/đổi quyền/chuyển Admin/restore thu hồi phiên. SQL cần chạy thực tế bằng SSMS. Không có test tự động lưu trong repo.

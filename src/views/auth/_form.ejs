@@ -1,0 +1,75 @@
+<!--
+TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A1, A4
+Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
+Hoàn thiện trạng thái validation/loading/đăng ký thành công; đăng nhập bằng email, không cho nhân viên tự đăng ký.
+OTP SMS chuyển Admin thuộc module hệ thống, không thêm OTP giả vào luồng đăng nhập.
+Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
+-->
+<!-- Đăng nhập / đăng ký bằng email; hiển thị tài khoản mẫu khi ở chế độ demo. -->
+<%- include('../partials/head') %>
+<body class="auth-page">
+<a class="brand auth-brand" href="/">A<span>✦</span> AURORA</a>
+<main class="auth-shell">
+<section class="auth-story">
+<span class="eyebrow">AURORA HOSPITALITY</span>
+<h1>Một kỳ nghỉ đẹp.<br>Một trải nghiệm<br>
+<em>đáng nhớ.</em>
+</h1>
+<p>Không gian nghỉ dưỡng tinh tế, dịch vụ tận tâm.<br>Mọi trải nghiệm bắt đầu từ đây.</p>
+<div class="arch-art">
+<div class="sun">
+</div>
+<div class="mountain">
+</div>
+<div class="water">
+</div>
+</div>
+<small>STAY INSPIRED · LIVE WELL</small>
+</section>
+<section class="auth-form">
+<span class="eyebrow">CHÀO MỪNG BẠN</span>
+<h2>
+<%= register?'Tạo tài khoản':'Đăng nhập' %>
+</h2>
+<p class="muted">
+<%= register?'Đặt kỳ nghỉ tiếp theo cùng Aurora.':'Dùng email để truy cập không gian của bạn.' %>
+</p>
+<form data-auth="<%= register?'register':'login' %>">
+<% if(register){ %>
+<label>Họ và tên<input name="name" autocomplete="name" required maxlength="120">
+</label>
+<label>Số điện thoại<input name="phone" autocomplete="tel" required pattern="[+0-9]{9,14}">
+</label>
+<% } %>
+<label>Email<input name="email" type="email" autocomplete="email" required placeholder="ban@example.com">
+</label>
+<label>Mật khẩu<input name="password" type="password" autocomplete="<%= register?'new-password':'current-password' %>" required minlength="8">
+</label>
+<% if(register){ %>
+<label>Nhập lại mật khẩu<input name="confirmPassword" type="password" autocomplete="new-password" required minlength="8">
+</label>
+<% } %>
+<p class="form-message" role="status">
+</p>
+<button class="primary wide">
+<%= register?'Tạo tài khoản':'Đăng nhập →' %>
+</button>
+</form>
+<p>
+<%= register?'Đã có tài khoản?':'Chưa có tài khoản?' %> <a href="<%= register?'/login':'/register' %>">
+<%= register?'Đăng nhập':'Đăng ký' %>
+</a>
+</p>
+<% if(config.mode==='demo'){ %>
+<details class="demo-note">
+<summary>Tài khoản trải nghiệm</summary>
+<p>Mật khẩu chung: <strong>Demo@123</strong>
+</p>
+<p>admin@hotel.test<br>manager@hotel.test<br>reception@hotel.test<br>housekeeping@hotel.test<br>customer@hotel.test</p>
+<small>Dữ liệu mẫu cục bộ · không gửi OTP/SMS thật.</small>
+</details>
+<% } %>
+</section>
+</main>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<header class="topbar">
+<button id="menu-toggle" aria-label="Mở menu">☰</button>
+<div class="breadcrumb">Không gian làm việc <span>/</span> <b id="crumb">Sơ đồ phòng</b>
+</div>
+<div class="user-menu">
+<div class="avatar">
+<%= user.name.slice(0,1) %>
+</div>
+<div>
+<strong>
+<%= user.name %>
+</strong>
+<small>
+<%= labels[user.role] %>
+</small>
+</div>
+<button class="icon-button" id="logout" title="Đăng xuất">↪</button>
+</div>
+</header>

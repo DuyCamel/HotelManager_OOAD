@@ -14,9 +14,9 @@ Bật **SQL Server and Windows Authentication mode** trong Server Properties →
 
 | File | Trách nhiệm |
 |---|---|
-| `backend/database/sql/001_create_database.sql` | Tạo `HotelManager_OOAD_Web`, 23 bảng, khóa chính và giá trị mặc định. |
-| `backend/database/sql/002_constraints_and_logic.sql` | FK, CHECK, UNIQUE/index, trigger, view/function/procedure bảo vệ dữ liệu. |
-| `backend/database/sql/003_seed_demo_data.sql` | Chèn dữ liệu giả liên kết nhiều bảng, đối chiếu tổng hóa đơn và điểm. |
+| `database/01_schema.sql` | Tạo `HotelManager_OOAD_Web`, 23 bảng, khóa chính và giá trị mặc định. |
+| `database/02_programmability.sql` | FK, CHECK, UNIQUE/index, trigger, view/function/procedure bảo vệ dữ liệu. |
+| `database/03_seed.sql` | Chèn dữ liệu giả liên kết nhiều bảng, đối chiếu tổng hóa đơn và điểm. |
 
 Mỗi file có `USE` và `GO`; chạy bằng **SSMS**, không dán cả file vào một `mssql.Request.query()` vì `GO` là batch separator của công cụ. Chỉ chạy tiếp khi không còn lỗi đỏ. 002 công bố schema **11** sau khi cài các object. 001/003 nhận diện phiên bản/seed và không xóa dữ liệu khi chạy lại. Không dùng ba file này để migrate database Java cũ: database web có tên riêng và email-only schema.
 

@@ -3,16 +3,18 @@
   "version": "2.0.0",
   "private": true,
   "description": "HotelManager web · Express, EJS, JavaScript và SQL Server",
-  "main": "server.js",
+  "main": "src/server.js",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "postinstall": "node scripts/setup-env.js",
     "setup": "node scripts/setup-env.js",
-    "start": "node server.js",
-    "dev": "node --watch server.js",
-    "db:check": "node scripts/check-db.js"
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "db:check": "node scripts/check-db.js",
+    "docs:dictionary": "node scripts/generate-dictionary.js",
+    "docs:check": "node scripts/generate-dictionary.js --check"
   },
   "dependencies": {
     "dotenv": "^18.0.9",
