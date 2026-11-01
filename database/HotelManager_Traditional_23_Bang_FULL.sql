@@ -470,10 +470,10 @@ BEGIN TRY
 
     INSERT dbo.SchemaVersion(VersionNo) VALUES (1);
     INSERT dbo.Account (AccountId, PasswordHash, FullName, Email, Phone, RoleCode) VALUES
-      ('DEMOA01','DEMO_NOT_FOR_LOGIN',N'Quản trị hệ thống',N'admin.demo@hotel.test','0900000001','ADMIN'),
-      ('DEMOA02','DEMO_NOT_FOR_LOGIN',N'Lễ tân Minh',N'reception.demo@hotel.test','0900000002','RECEPTIONIST'),
-      ('DEMOA03','DEMO_NOT_FOR_LOGIN',N'Buồng phòng Lan',N'housekeeping.demo@hotel.test','0900000003','HOUSEKEEPER'),
-      ('DEMOA04','DEMO_NOT_FOR_LOGIN',N'Khách hàng An',N'customer.demo@hotel.test','0900000004','CUSTOMER');
+      ('DEMOA01','mbsOl9q8woBGUcMQ4z2SRQ==:2TA1ikDYozERAiCV/THHV9V8JLEFm44UtgbvvAp+Xdw=',N'Quản trị hệ thống',N'admin.demo@hotel.test','0900000001','ADMIN'),
+      ('DEMOA02','DRIpKm7xNvavRmth2bbNTA==:avBWkFNlLF2WMuc1yR8m7tUSJdXhJF9o7q/8RfmFjC0=',N'Lễ tân Minh',N'reception.demo@hotel.test','0900000002','RECEPTIONIST'),
+      ('DEMOA03','ScqPz+kq8B3NHlYSd4t3AQ==:SB2Jy1XQTdbNcA853DgdAsHuaBrIlc82K74HM/8pE/Q=',N'Buồng phòng Lan',N'housekeeping.demo@hotel.test','0900000003','HOUSEKEEPER'),
+      ('DEMOA04','S4kJDsY2qmhNC3xo0VnCTA==:UoRvxsJNK4Ped30W06RAqGEdl5W4S7kWxGKAGQujTnk=',N'Khách hàng An',N'customer.demo@hotel.test','0900000004','CUSTOMER');
 
     INSERT dbo.Customer(CustomerId, FullName, Phone, IdentityNo, Address, AccountId) VALUES
       ('DEMOC01',N'Nguyễn Văn An','0911000001','079200000001',N'TP. Hồ Chí Minh','DEMOA04'),
