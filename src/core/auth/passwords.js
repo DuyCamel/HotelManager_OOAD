@@ -15,19 +15,22 @@ async function hash(password) {
   return salt.toString("base64") + ":" + key.toString("base64");
 }
 async function verify(password, encoded) {
+  if (typeof password !== "string" || typeof encoded !== "string") return false;
   try {
-    const [s, h] = encoded.split(":");
-    const expected = Buffer.from(h, "base64");
-    const actual = await derive(
-      password,
-      Buffer.from(s, "base64"),
-      120000,
-      32,
-      "sha256",
-    );
-    return (
-      expected.length === actual.length && timingSafeEqual(expected, actual)
-    );
+    // SQL/demo and application accounts must share exactly salt:hash Base64.
+    const parts = encoded.split(":");
+    if (parts.length !== 2) return false;
+    const [saltText, hashText] = parts;
+    const validBase64 = (value) =>
+      /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value);
+    if (!validBase64(saltText) || !validBase64(hashText)) return false;
+    const salt = Buffer.from(saltText, "base64");
+    const expected = Buffer.from(hashText, "base64");
+    if (salt.length !== 16 || expected.length !== 32) return false;
+    if (salt.toString("base64") !== saltText || expected.toString("base64") !== hashText)
+      return false;
+    const actual = await derive(password, salt, 120000, 32, "sha256");
+    return timingSafeEqual(expected, actual);
   } catch {
     return false;
   }
