@@ -21,7 +21,7 @@ module.exports = async function createDemo() {
     return t.toISOString();
   };
   const stamp = now.toISOString();
-  const passwordHash = await hash("Demo@123");
+  const passwordHash = await hash("mk1233456");
   const roles = [
     ["TK01", "admin", "Admin", "ADMIN"],
     ["TK02", "manager", "Quản lý", "MANAGER"],
