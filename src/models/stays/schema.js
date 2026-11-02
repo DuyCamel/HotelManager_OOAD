@@ -5,13 +5,11 @@ module.exports = {
     "StayId",
     {
       bookingId: "BookingId",
-      roomId: "RoomId",
       identityNo: "IdentityNo",
       checkInAt: "CheckInAt",
       checkOutAt: "CheckOutAt",
       roomCharge: "RoomCharge",
       surcharge: "Surcharge",
-      createdBy: "CreatedBy",
     },
   ],
   history: [
