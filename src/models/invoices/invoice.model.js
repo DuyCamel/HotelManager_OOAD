@@ -115,14 +115,12 @@ module.exports = (repo) => ({
         paidAt: now,
         createdBy: user.id,
       });
-      await tx.finalizeInvoice(id);
-      await tx.update("stays", st.id, { checkOutAt: now });
-      for (const hist of await tx.list("history"))
-        if (hist.stayId === st.id && !hist.toAt)
-          await tx.update("history", hist.id, { toAt: now });
-      await tx.update("bookings", booking.id, { status: "COMPLETED" });
       const openHistory = (await tx.list("history")).find((item) => item.stayId === st.id && !item.toAt);
       ensure(openHistory, "Không tìm thấy phòng đang lưu trú.");
+      await tx.finalizeInvoice(id);
+      await tx.update("stays", st.id, { checkOutAt: now });
+      await tx.update("history", openHistory.id, { toAt: now });
+      await tx.update("bookings", booking.id, { status: "COMPLETED" });
       await tx.update("rooms", openHistory.roomId, { status: "DIRTY" });
       await h.createTask(tx, openHistory.roomId, st.id, now);
       await h.audit(tx, user, "Thanh toán và trả phòng", "INVOICE", id);
