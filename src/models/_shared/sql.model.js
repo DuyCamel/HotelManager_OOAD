@@ -139,16 +139,16 @@ module.exports = {
       const version = await pool
         .request()
         .query("SELECT MAX(VersionNo) v FROM dbo.SchemaVersion");
-      if (version.recordset[0].v !== 11)
+      if (version.recordset[0].v !== 2)
         throw new Error(
-          "Schema chưa sẵn sàng. Chạy database/01_schema.sql -> 02_programmability.sql -> 03_seed.sql.",
+          "Schema chưa sẵn sàng. Chạy database/HotelManagerOOAD.sql trong database mới.",
         );
       const settings = await pool
         .request()
         .query("SELECT COUNT(*) n FROM dbo.HotelSetting");
       if (settings.recordset[0].n !== 1)
         throw new Error(
-          "Chạy database/03_seed.sql để khởi tạo cấu hình khách sạn.",
+          "Chạy database/HotelManagerOOAD.sql để khởi tạo dữ liệu và cấu hình khách sạn.",
         );
     } catch (e) {
       await require("../../config/db").close();
