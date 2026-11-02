@@ -5,7 +5,6 @@ module.exports = {
     "InvoiceId",
     {
       stayId: "StayId",
-      customerId: "CustomerId",
       issuedAt: "IssuedAt",
       roomCharge: "RoomCharge",
       serviceCharge: "ServiceCharge",
@@ -14,7 +13,6 @@ module.exports = {
       deposit: "DepositAmount",
       status: "StatusCode",
       method: "PaymentMethod",
-      createdBy: "CreatedBy",
       amountDue: "AmountDue",
     },
   ],
