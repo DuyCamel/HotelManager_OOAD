@@ -9,9 +9,7 @@ module.exports = {
       quantity: "Quantity",
       unitPrice: "UnitPrice",
       usedAt: "UsedAt",
-      recordedBy: "RecordedBy",
       isVoided: "IsVoided",
-      invoiceId: "InvoiceId",
     },
   ],
 };
