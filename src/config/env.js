@@ -29,7 +29,7 @@ const config = {
   sql: {
     server: e.DB_SERVER || "localhost",
     port: Number(e.DB_PORT || 1433),
-    database: e.DB_NAME || "HotelManager_OOAD_Web",
+    database: e.DB_NAME || "HotelManagerOOAD",
     user: e.DB_USER,
     password: e.DB_PASSWORD,
     options: {
