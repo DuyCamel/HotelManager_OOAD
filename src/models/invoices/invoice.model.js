@@ -16,7 +16,7 @@ async function preview(tx, id) {
   ensure(st && !st.checkOutAt, "Phiếu thuê không còn đang lưu trú.");
   const booking = await tx.find("bookings", st.bookingId);
   const usage = (await tx.list("usage")).filter(
-    (x) => x.stayId === id && !x.isVoided && !x.invoiceId,
+    (x) => x.stayId === id && !x.isVoided,
   );
   const services = await tx.list("services");
   const lines = usage.map((x) => ({
@@ -100,7 +100,7 @@ module.exports = (repo) => ({
           quantity: line.quantity,
           unitPrice: line.unitPrice,
         });
-        await tx.update("usage", line.id, { invoiceId: id });
+        // Usage remains linked to Stay; this report schema has no Usage.InvoiceId.
       }
       await tx.insert("payments", {
         id: v.id("GD"),
@@ -121,8 +121,10 @@ module.exports = (repo) => ({
         if (hist.stayId === st.id && !hist.toAt)
           await tx.update("history", hist.id, { toAt: now });
       await tx.update("bookings", booking.id, { status: "COMPLETED" });
-      await tx.update("rooms", st.roomId, { status: "DIRTY" });
-      await h.createTask(tx, st.roomId, st.id, now);
+      const openHistory = (await tx.list("history")).find((item) => item.stayId === st.id && !item.toAt);
+      ensure(openHistory, "Không tìm thấy phòng đang lưu trú.");
+      await tx.update("rooms", openHistory.roomId, { status: "DIRTY" });
+      await h.createTask(tx, openHistory.roomId, st.id, now);
       await h.audit(tx, user, "Thanh toán và trả phòng", "INVOICE", id);
       return { id, message: "Đã lập hóa đơn và chuyển phòng sang Cần dọn." };
     });
