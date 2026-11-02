@@ -15,7 +15,6 @@ module.exports = {
       deposit: "DepositAmount",
       holdUntil: "HoldUntil",
       createdAt: "CreatedAt",
-      createdBy: "CreatedBy",
     },
   ],
 };
