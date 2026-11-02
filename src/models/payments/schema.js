@@ -11,7 +11,6 @@ module.exports = {
       method: "MethodCode",
       externalReference: "ExternalReference",
       paidAt: "PaidAt",
-      createdBy: "CreatedBy",
     },
   ],
 };
