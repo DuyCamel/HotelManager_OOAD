@@ -66,8 +66,11 @@ module.exports = (repo) => ({
       const booking = await tx.find("bookings", st.bookingId),
         next = await tx.find("rooms", b.roomId),
         now = new Date().toISOString();
+      const openHistory = (await tx.list("history")).find((item) => item.stayId === st.id && !item.toAt);
+      ensure(openHistory, "Không tìm thấy phòng đang lưu trú.");
+      const currentRoomId = openHistory.roomId;
       ensure(
-        next && next.id !== st.roomId && next.status === "AVAILABLE",
+        next && next.id !== currentRoomId && next.status === "AVAILABLE",
         "Phòng mới phải khác phòng hiện tại và sẵn sàng.",
       );
       ensure(
@@ -80,11 +83,9 @@ module.exports = (repo) => ({
       const extra = Math.max(
         0,
         (await h.quote(tx, next.id, now, booking.endAt)) -
-          (await h.quote(tx, st.roomId, now, booking.endAt)),
+          (await h.quote(tx, currentRoomId, now, booking.endAt)),
       );
-      await tx.update("bookings", booking.id, { roomId: next.id });
       await tx.update("stays", st.id, {
-        roomId: next.id,
         surcharge: st.surcharge + extra,
       });
       for (const hist of await tx.list("history"))
@@ -97,16 +98,16 @@ module.exports = (repo) => ({
         toAt: null,
         extraCharge: extra,
       });
-      await tx.update("rooms", st.roomId, { status: "DIRTY" });
+      await tx.update("rooms", currentRoomId, { status: "DIRTY" });
       await tx.update("rooms", next.id, { status: "OCCUPIED" });
-      await h.createTask(tx, st.roomId, st.id, now);
+      await h.createTask(tx, currentRoomId, st.id, now);
       await h.audit(
         tx,
         user,
         "Đổi phòng",
         "STAY",
         st.id,
-        st.roomId + " → " + next.id,
+        currentRoomId + " → " + next.id,
       );
       return { extra };
     });
