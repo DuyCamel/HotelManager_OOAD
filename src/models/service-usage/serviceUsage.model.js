@@ -48,8 +48,8 @@ module.exports = (repo) => ({
     return repo.transaction(async (tx) => {
       const row = await tx.find("usage", b.id);
       ensure(
-        row && !row.invoiceId && !row.isVoided,
-        "Dịch vụ đã lên hóa đơn hoặc đã hủy.",
+        row && !row.isVoided,
+        "Dịch vụ không tồn tại hoặc đã hủy.",
       );
       const st = await tx.find("stays", row.stayId);
       ensure(!st.checkOutAt, "Phiếu thuê đã kết thúc.");
