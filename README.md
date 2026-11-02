@@ -13,7 +13,7 @@ npm run dev
 
 Mở http://localhost:3000. Hoặc nhấn F5 sau khi cài thư viện. Điểm chạy là `src/server.js`; Express cấu hình ở `src/app.js`. `npm start` chạy bình thường, `npm run dev` theo dõi thay đổi server. `npm run setup` tạo `.env` từ `.env_ex` nếu chưa có, không ghi đè file riêng của máy.
 
-Mặc định `DB_MODE=demo`, dữ liệu lưu local; muốn SQL thật xem [DATABASE.md](docs/DATABASE.md), chạy ba script trong `database/`, cấu hình `.env` rồi `npm run db:check`. SQL lỗi không tự fallback demo.
+Mặc định `DB_MODE=demo`, dữ liệu lưu local; muốn SQL thật xem [DATABASE.md](docs/DATABASE.md), chạy `database/HotelManagerOOAD.sql` trên SQL Server mới, cấu hình `.env` rồi `npm run db:check`. SQL lỗi không tự fallback demo.
 
 | Vai trò | Email demo |
 |---|---|
@@ -23,7 +23,7 @@ Mặc định `DB_MODE=demo`, dữ liệu lưu local; muốn SQL thật xem [DAT
 | Buồng phòng | housekeeping@hotel.test |
 | Khách | customer@hotel.test |
 
-Mật khẩu: `Demo@123`. Mọi thông tin mẫu đều giả. Tài khoản đăng nhập bằng email, không có username.
+Mật khẩu demo: `mk1233456`. Mọi thông tin mẫu đều giả. Tài khoản đăng nhập bằng email, không có username.
 
 ## Mở đúng nơi để làm việc
 
@@ -37,7 +37,7 @@ Mật khẩu: `Demo@123`. Mọi thông tin mẫu đều giả. Tài khoản đă
 | Giao diện module | `src/views/<module>/`, `src/public/js/modules/<module>/` |
 | Layout/menu/dialog | `src/views/layouts/`, `src/views/partials/` |
 | CSS | `src/public/css/` theo khu vực |
-| Schema, trigger/view/proc, seed | `database/01_schema.sql`, `02_programmability.sql`, `03_seed.sql` |
+| Cấu trúc CSDL và dữ liệu mẫu | `database/HotelManagerOOAD.sql` |
 
 - [Danh sách module và quy tắc MVC](docs/MODULES.md)
 - [Phân công 3 người và TODO còn lại](docs/PHAN_CONG_3_NGUOI.md)
