@@ -19,10 +19,9 @@ module.exports = (repo) => ({
         room && ["DIRTY", "MAINTENANCE"].includes(room.status),
         "Phòng không ở trạng thái cần dọn/bảo trì.",
       );
+      const activeStays = new Set((await tx.list("stays")).filter((s) => !s.checkOutAt).map((s) => s.id));
       ensure(
-        !(await tx.list("stays")).some(
-          (s) => s.roomId === room.id && !s.checkOutAt,
-        ),
+        !(await tx.list("history")).some((h) => h.roomId === room.id && !h.toAt && activeStays.has(h.stayId)),
         "Phòng còn khách.",
       );
       for (const task of await tx.list("tasks"))
