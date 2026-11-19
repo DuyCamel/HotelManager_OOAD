@@ -1,461 +1,725 @@
 /*
  HotelManagerOOAD.sql
- PURPOSE: Independent academic/report schema based on HotelManager_Traditional_Full23_PKFK.dbml.
- SQL Server 2019+. 23 tables, 28 foreign keys. No triggers or stored procedures.
- IMPORTANT: This is NOT the GitHub application database. No DROP DATABASE or DELETE statements.
- Run via SSMS. Do not use this script to migrate production data.
- DB constraints cannot alone prevent overlapping date-range bookings or reconcile all money totals;
- transactional validation belongs to the MVC model/service layer.
-*/
-USE [master];
-GO
-IF DB_ID(N'HotelManagerOOAD') IS NOT NULL
-    THROW 51001, N'Database HotelManagerOOAD already exists. Script stopped to avoid changing existing data.', 1;
-GO
-CREATE DATABASE [HotelManagerOOAD];
-GO
-USE [HotelManagerOOAD];
+ Canonical SQL Server 2019+ application schema and development seed.
+
+ Create/select your application database in SSMS, or select it with sqlcmd -d.
+ Run this entire file with input code page 65001. It uses the selected database,
+ upgrades older checked-in shapes to version 5, and is safe to
+ rerun: DDL is conditional and the realistic seed has a durable marker. It
+ never drops the database or application data. SchemaVersion 5 is recorded
+ only after all tables, constraints, seed handling, views, and triggers finish.
+
+ sqlcmd example:
+ sqlcmd -S localhost,1433 -E -C -d YourHotelDatabase -f 65001 -b -i database\HotelManagerOOAD.sql
+ */
+SET NOEXEC OFF;
+IF DB_ID() IN (1, 2, 3, 4)
+BEGIN
+    RAISERROR(N'Select your application database in SSMS or use sqlcmd -d before running this script. System databases are not supported.', 16, 1);
+    SET NOEXEC ON;
+END;
 GO
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET ARITHABORT ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET NUMERIC_ROUNDABORT OFF;
 GO
 
--- SchemaVersion
-CREATE TABLE dbo.[SchemaVersion] (
-
-    VersionNo int NOT NULL CONSTRAINT PK_SchemaVersion PRIMARY KEY,
-    AppliedAt datetime2(0) NOT NULL CONSTRAINT DF_SchemaVersion_Applied DEFAULT SYSUTCDATETIME()
-);
+IF OBJECT_ID(N'dbo.SchemaVersion', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[SchemaVersion] (
+        VersionNo int NOT NULL CONSTRAINT PK_SchemaVersion PRIMARY KEY,
+        AppliedAt datetime2(0) NOT NULL CONSTRAINT DF_SchemaVersion_Applied DEFAULT SYSUTCDATETIME()
+    );
+END;
 GO
 
--- SeedHistory
-CREATE TABLE dbo.[SeedHistory] (
-
-    SeedName varchar(100) NOT NULL CONSTRAINT PK_SeedHistory PRIMARY KEY,
-    AppliedAt datetime2(0) NOT NULL CONSTRAINT DF_SeedHistory_Applied DEFAULT SYSUTCDATETIME()
-);
+IF EXISTS (SELECT 1 FROM dbo.SchemaVersion WHERE VersionNo > 5)
+    THROW 51040, N'Database schema is newer than this installer.', 1;
 GO
 
--- Account
-CREATE TABLE dbo.[Account] (
-
-    AccountId varchar(20) NOT NULL CONSTRAINT PK_Account PRIMARY KEY,
-    PasswordHash varchar(200) NOT NULL,
-    FullName nvarchar(120) NOT NULL,
-    Email nvarchar(254) NOT NULL,
-    Phone varchar(15) NOT NULL,
-    RoleCode varchar(20) NOT NULL,
-    AuthVersion int NOT NULL CONSTRAINT DF_Account_AuthVersion DEFAULT 0,
-    IsActive bit NOT NULL CONSTRAINT DF_Account_Active DEFAULT 1,
-    CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_Account_Created DEFAULT SYSUTCDATETIME(),
-    RowVersion rowversion
-);
+IF OBJECT_ID(N'dbo.SeedHistory', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[SeedHistory] (
+        SeedName varchar(100) NOT NULL CONSTRAINT PK_SeedHistory PRIMARY KEY,
+        AppliedAt datetime2(0) NOT NULL CONSTRAINT DF_SeedHistory_Applied DEFAULT SYSUTCDATETIME()
+    );
+END;
 GO
 
--- Customer
-CREATE TABLE dbo.[Customer] (
-
-    CustomerId varchar(20) NOT NULL CONSTRAINT PK_Customer PRIMARY KEY,
-    FullName nvarchar(120) NOT NULL,
-    Phone varchar(15) NOT NULL,
-    IdentityNo varchar(30) NULL,
-    Address nvarchar(512) NOT NULL CONSTRAINT DF_Customer_Address DEFAULT N'',
-    AccountId varchar(20) NULL,
-    IsActive bit NOT NULL CONSTRAINT DF_Customer_Active DEFAULT 1,
-    CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_Customer_Created DEFAULT SYSUTCDATETIME(),
-    RowVersion rowversion
-);
+IF OBJECT_ID(N'dbo.Account', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[Account] (
+        AccountId varchar(20) NOT NULL CONSTRAINT PK_Account PRIMARY KEY,
+        PasswordHash varchar(200) NOT NULL,
+        FullName nvarchar(120) NOT NULL,
+        Email nvarchar(254) NOT NULL,
+        Phone varchar(15) NOT NULL,
+        RoleCode varchar(20) NOT NULL,
+        AuthVersion int NOT NULL CONSTRAINT DF_Account_AuthVersion DEFAULT 0,
+        IsActive bit NOT NULL CONSTRAINT DF_Account_Active DEFAULT 1,
+        CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_Account_Created DEFAULT SYSUTCDATETIME(),
+        RowVersion rowversion
+    );
+END;
 GO
 
--- RoomType
-CREATE TABLE dbo.[RoomType] (
-
-    RoomTypeId varchar(20) NOT NULL CONSTRAINT PK_RoomType PRIMARY KEY,
-    Name nvarchar(100) NOT NULL,
-    Capacity int NOT NULL,
-    Beds int NOT NULL,
-    HourlyPrice decimal(18,2) NOT NULL,
-    NightlyPrice decimal(18,2) NOT NULL,
-    DailyPrice decimal(18,2) NOT NULL,
-    Amenities nvarchar(1000) NOT NULL CONSTRAINT DF_RoomType_Amenities DEFAULT N''
-);
+IF OBJECT_ID(N'dbo.Customer', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[Customer] (
+        CustomerId varchar(20) NOT NULL CONSTRAINT PK_Customer PRIMARY KEY,
+        FullName nvarchar(120) NOT NULL,
+        Phone varchar(15) NOT NULL,
+        IdentityNo varchar(30) NULL,
+        Address nvarchar(512) NOT NULL CONSTRAINT DF_Customer_Address DEFAULT N'',
+        AccountId varchar(20) NULL,
+        IsActive bit NOT NULL CONSTRAINT DF_Customer_Active DEFAULT 1,
+        CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_Customer_Created DEFAULT SYSUTCDATETIME(),
+        RowVersion rowversion
+    );
+END;
 GO
 
--- Room
-CREATE TABLE dbo.[Room] (
-
-    RoomId varchar(20) NOT NULL CONSTRAINT PK_Room PRIMARY KEY,
-    Name nvarchar(100) NOT NULL,
-    RoomTypeId varchar(20) NOT NULL,
-    StatusCode varchar(20) NOT NULL CONSTRAINT DF_Room_Status DEFAULT 'AVAILABLE',
-    ImagePath nvarchar(512) NULL,
-    Note nvarchar(1000) NOT NULL CONSTRAINT DF_Room_Note DEFAULT N'',
-    RowVersion rowversion
-);
+IF OBJECT_ID(N'dbo.RoomType', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[RoomType] (
+        RoomTypeId varchar(20) NOT NULL CONSTRAINT PK_RoomType PRIMARY KEY,
+        Name nvarchar(100) NOT NULL,
+        Capacity int NOT NULL,
+        Beds int NOT NULL,
+        HourlyPrice decimal(18,2) NOT NULL,
+        NightlyPrice decimal(18,2) NOT NULL,
+        DailyPrice decimal(18,2) NOT NULL,
+        Amenities nvarchar(1000) NOT NULL CONSTRAINT DF_RoomType_Amenities DEFAULT N''
+    );
+END;
 GO
 
--- HotelService
-CREATE TABLE dbo.[HotelService] (
-
-    ServiceId varchar(20) NOT NULL CONSTRAINT PK_HotelService PRIMARY KEY,
-    Name nvarchar(100) NOT NULL,
-    Description nvarchar(512) NOT NULL CONSTRAINT DF_Service_Description DEFAULT N'',
-    UnitName nvarchar(30) NOT NULL,
-    Price decimal(18,2) NOT NULL,
-    IsActive bit NOT NULL CONSTRAINT DF_Service_Active DEFAULT 1
-);
+IF OBJECT_ID(N'dbo.Room', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[Room] (
+        RoomId varchar(20) NOT NULL CONSTRAINT PK_Room PRIMARY KEY,
+        Name nvarchar(100) NOT NULL,
+        RoomTypeId varchar(20) NOT NULL,
+        StatusCode varchar(20) NOT NULL CONSTRAINT DF_Room_Status DEFAULT 'AVAILABLE',
+        ImagePath nvarchar(512) NULL,
+        ImageGalleryJson nvarchar(2000) NULL,
+        ViewName nvarchar(100) NULL,
+        Amenities nvarchar(1000) NULL,
+        Note nvarchar(1000) NOT NULL CONSTRAINT DF_Room_Note DEFAULT N'',
+        RowVersion rowversion
+    );
+END;
 GO
 
--- RoomTypeService
-CREATE TABLE dbo.[RoomTypeService] (
-
-    RoomTypeId varchar(20) NOT NULL,
-    ServiceId varchar(20) NOT NULL,
-    IsIncluded bit NOT NULL CONSTRAINT DF_RoomTypeService_Included DEFAULT 1,
-    CONSTRAINT PK_RoomTypeService PRIMARY KEY(RoomTypeId, ServiceId)
-);
+IF OBJECT_ID(N'dbo.HotelService', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[HotelService] (
+        ServiceId varchar(20) NOT NULL CONSTRAINT PK_HotelService PRIMARY KEY,
+        Name nvarchar(100) NOT NULL,
+        Description nvarchar(512) NOT NULL CONSTRAINT DF_Service_Description DEFAULT N'',
+        UnitName nvarchar(30) NOT NULL,
+        Price decimal(18,2) NOT NULL,
+        IsActive bit NOT NULL CONSTRAINT DF_Service_Active DEFAULT 1
+    );
+END;
 GO
 
--- HolidayRate
-CREATE TABLE dbo.[HolidayRate] (
-
-    HolidayRateId varchar(20) NOT NULL CONSTRAINT PK_HolidayRate PRIMARY KEY,
-    Name nvarchar(120) NOT NULL,
-    RoomTypeId varchar(20) NOT NULL,
-    StartDate date NOT NULL,
-    EndDate date NOT NULL,
-    IncreasePercent decimal(7,2) NOT NULL,
-    IsActive bit NOT NULL CONSTRAINT DF_HolidayRate_Active DEFAULT 1
-);
+IF OBJECT_ID(N'dbo.RoomTypeService', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[RoomTypeService] (
+        RoomTypeId varchar(20) NOT NULL,
+        ServiceId varchar(20) NOT NULL,
+        IsIncluded bit NOT NULL CONSTRAINT DF_RoomTypeService_Included DEFAULT 1,
+        CONSTRAINT PK_RoomTypeService PRIMARY KEY(RoomTypeId, ServiceId)
+    );
+END;
 GO
 
--- Membership
-CREATE TABLE dbo.[Membership] (
-
-    MembershipId varchar(20) NOT NULL CONSTRAINT PK_Membership PRIMARY KEY,
-    CustomerId varchar(20) NOT NULL,
-    Points bigint NOT NULL CONSTRAINT DF_Membership_Points DEFAULT 0,
-    IsActive bit NOT NULL CONSTRAINT DF_Membership_Active DEFAULT 1,
-    IssuedAt datetime2(0) NOT NULL CONSTRAINT DF_Membership_Issued DEFAULT SYSUTCDATETIME()
-);
+IF OBJECT_ID(N'dbo.HolidayRate', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[HolidayRate] (
+        HolidayRateId varchar(20) NOT NULL CONSTRAINT PK_HolidayRate PRIMARY KEY,
+        Name nvarchar(120) NOT NULL,
+        RoomTypeId varchar(20) NOT NULL,
+        ScheduleType varchar(10) NOT NULL CONSTRAINT DF_HolidayRate_ScheduleType DEFAULT 'ONE_OFF',
+        StartDate date NULL,
+        EndDate date NULL,
+        StartMonthDay char(5) NULL,
+        EndMonthDay char(5) NULL,
+        IncreasePercent decimal(7,2) NOT NULL,
+        IsActive bit NOT NULL CONSTRAINT DF_HolidayRate_Active DEFAULT 1
+    );
+END;
 GO
 
--- Booking
-CREATE TABLE dbo.[Booking] (
-
-    BookingId varchar(20) NOT NULL CONSTRAINT PK_Booking PRIMARY KEY,
-    CustomerId varchar(20) NOT NULL,
-    RoomId varchar(20) NOT NULL,
-    StartAt datetime2(0) NOT NULL,
-    EndAt datetime2(0) NOT NULL,
-    GuestCount int NOT NULL,
-    StatusCode varchar(20) NOT NULL,
-    ChannelCode varchar(20) NOT NULL,
-    RoomCharge decimal(18,2) NOT NULL,
-    DepositAmount decimal(18,2) NOT NULL CONSTRAINT DF_Booking_Deposit DEFAULT 0,
-    HoldUntil datetime2(0) NOT NULL,
-    CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_Booking_Created DEFAULT SYSUTCDATETIME(),
-    RowVersion rowversion
-);
+IF OBJECT_ID(N'dbo.Membership', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[Membership] (
+        MembershipId varchar(20) NOT NULL CONSTRAINT PK_Membership PRIMARY KEY,
+        CustomerId varchar(20) NOT NULL,
+        Points bigint NOT NULL CONSTRAINT DF_Membership_Points DEFAULT 0,
+        IsActive bit NOT NULL CONSTRAINT DF_Membership_Active DEFAULT 1,
+        IssuedAt datetime2(0) NOT NULL CONSTRAINT DF_Membership_Issued DEFAULT SYSUTCDATETIME()
+    );
+END;
 GO
 
--- Stay
-CREATE TABLE dbo.[Stay] (
-
-    StayId varchar(20) NOT NULL CONSTRAINT PK_Stay PRIMARY KEY,
-    BookingId varchar(20) NOT NULL,
-    IdentityNo varchar(30) NOT NULL,
-    CheckInAt datetime2(0) NOT NULL,
-    CheckOutAt datetime2(0) NULL,
-    RoomCharge decimal(18,2) NOT NULL,
-    Surcharge decimal(18,2) NOT NULL CONSTRAINT DF_Stay_Surcharge DEFAULT 0,
-    RowVersion rowversion
-);
+IF OBJECT_ID(N'dbo.Booking', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[Booking] (
+        BookingId varchar(20) NOT NULL CONSTRAINT PK_Booking PRIMARY KEY,
+        CustomerId varchar(20) NOT NULL,
+        RoomId varchar(20) NOT NULL,
+        StartAt datetime2(0) NOT NULL,
+        EndAt datetime2(0) NOT NULL,
+        GuestCount int NOT NULL,
+        StatusCode varchar(20) NOT NULL,
+        ChannelCode varchar(20) NOT NULL,
+        RoomCharge decimal(18,2) NOT NULL,
+        DepositAmount decimal(18,2) NOT NULL CONSTRAINT DF_Booking_Deposit DEFAULT 0,
+        HoldUntil datetime2(0) NULL,
+        CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_Booking_Created DEFAULT SYSUTCDATETIME(),
+        CreatedBy varchar(20) NULL,
+        RowVersion rowversion
+    );
+END;
 GO
 
--- StayRoomHistory
-CREATE TABLE dbo.[StayRoomHistory] (
-
-    HistoryId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_StayRoomHistory PRIMARY KEY,
-    StayId varchar(20) NOT NULL,
-    RoomId varchar(20) NOT NULL,
-    FromAt datetime2(0) NOT NULL,
-    ToAt datetime2(0) NULL,
-    ExtraCharge decimal(18,2) NOT NULL CONSTRAINT DF_StayHistory_Extra DEFAULT 0
-);
+-- Walk-in stays are already checked in and do not need a reservation hold deadline.
+IF EXISTS (
+    SELECT 1
+    FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'dbo.Booking')
+      AND name = N'HoldUntil'
+      AND is_nullable = 0
+)
+    ALTER TABLE dbo.Booking ALTER COLUMN HoldUntil datetime2(0) NULL;
 GO
 
--- Invoice
-CREATE TABLE dbo.[Invoice] (
-
-    InvoiceId varchar(20) NOT NULL CONSTRAINT PK_Invoice PRIMARY KEY,
-    StayId varchar(20) NOT NULL,
-    IssuedAt datetime2(0) NOT NULL CONSTRAINT DF_Invoice_Issued DEFAULT SYSUTCDATETIME(),
-    RoomCharge decimal(18,2) NOT NULL,
-    ServiceCharge decimal(18,2) NOT NULL CONSTRAINT DF_Invoice_Service DEFAULT 0,
-    Surcharge decimal(18,2) NOT NULL CONSTRAINT DF_Invoice_Surcharge DEFAULT 0,
-    DiscountAmount decimal(18,2) NOT NULL CONSTRAINT DF_Invoice_Discount DEFAULT 0,
-    DepositAmount decimal(18,2) NOT NULL,
-    AmountDue AS CONVERT(decimal(18,2), RoomCharge + ServiceCharge + Surcharge - DiscountAmount - DepositAmount) PERSISTED,
-    StatusCode varchar(10) NOT NULL CONSTRAINT DF_Invoice_Status DEFAULT 'DRAFT',
-    PaymentMethod varchar(20) NOT NULL
-);
+IF OBJECT_ID(N'dbo.Stay', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[Stay] (
+        StayId varchar(20) NOT NULL CONSTRAINT PK_Stay PRIMARY KEY,
+        BookingId varchar(20) NOT NULL,
+        IdentityNo varchar(30) NOT NULL,
+        CheckInAt datetime2(0) NOT NULL,
+        CheckOutAt datetime2(0) NULL,
+        RoomCharge decimal(18,2) NOT NULL,
+        Surcharge decimal(18,2) NOT NULL CONSTRAINT DF_Stay_Surcharge DEFAULT 0,
+        CreatedBy varchar(20) NULL,
+        RowVersion rowversion
+    );
+END;
 GO
 
--- InvoiceLine
-CREATE TABLE dbo.[InvoiceLine] (
-
-    InvoiceLineId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_InvoiceLine PRIMARY KEY,
-    InvoiceId varchar(20) NOT NULL,
-    LineType varchar(20) NOT NULL,
-    ServiceId varchar(20) NULL,
-    Description nvarchar(200) NOT NULL,
-    Quantity decimal(10,2) NOT NULL,
-    UnitPrice decimal(18,2) NOT NULL,
-    LineAmount AS CONVERT(decimal(18,2), Quantity * UnitPrice) PERSISTED
-);
+IF OBJECT_ID(N'dbo.StayRoomHistory', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[StayRoomHistory] (
+        HistoryId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_StayRoomHistory PRIMARY KEY,
+        StayId varchar(20) NOT NULL,
+        RoomId varchar(20) NOT NULL,
+        FromAt datetime2(0) NOT NULL,
+        ToAt datetime2(0) NULL,
+        ExtraCharge decimal(18,2) NOT NULL CONSTRAINT DF_StayHistory_Extra DEFAULT 0
+    );
+END;
 GO
 
--- Payment
-CREATE TABLE dbo.[Payment] (
-
-    PaymentId varchar(30) NOT NULL CONSTRAINT PK_Payment PRIMARY KEY,
-    BookingId varchar(20) NULL,
-    InvoiceId varchar(20) NULL,
-    PaymentKind varchar(20) NOT NULL,
-    Amount decimal(18,2) NOT NULL,
-    MethodCode varchar(20) NOT NULL,
-    ExternalReference varchar(100) NULL,
-    PaidAt datetime2(0) NOT NULL CONSTRAINT DF_Payment_Paid DEFAULT SYSUTCDATETIME()
-);
+IF OBJECT_ID(N'dbo.Invoice', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[Invoice] (
+        InvoiceId varchar(20) NOT NULL CONSTRAINT PK_Invoice PRIMARY KEY,
+        StayId varchar(20) NOT NULL,
+        CustomerId varchar(20) NOT NULL,
+        IssuedAt datetime2(0) NOT NULL CONSTRAINT DF_Invoice_Issued DEFAULT SYSUTCDATETIME(),
+        RoomCharge decimal(18,2) NOT NULL,
+        ServiceCharge decimal(18,2) NOT NULL CONSTRAINT DF_Invoice_Service DEFAULT 0,
+        Surcharge decimal(18,2) NOT NULL CONSTRAINT DF_Invoice_Surcharge DEFAULT 0,
+        DiscountAmount decimal(18,2) NOT NULL CONSTRAINT DF_Invoice_Discount DEFAULT 0,
+        DepositAmount decimal(18,2) NOT NULL,
+        AmountDue AS CONVERT(decimal(18,2), RoomCharge + ServiceCharge + Surcharge - DiscountAmount - DepositAmount) PERSISTED,
+        StatusCode varchar(10) NOT NULL CONSTRAINT DF_Invoice_Status DEFAULT 'DRAFT',
+        PaymentMethod varchar(20) NOT NULL,
+        CustomerNameSnapshot nvarchar(120) NULL,
+        CustomerIdentitySnapshot varchar(30) NULL,
+        CustomerPhoneSnapshot varchar(30) NULL,
+        RoomNameSnapshot nvarchar(100) NULL,
+        HotelNameSnapshot nvarchar(200) NULL,
+        HotelAddressSnapshot nvarchar(512) NULL,
+        HotelHotlineSnapshot varchar(30) NULL,
+        PaymentReferenceSnapshot varchar(100) NULL,
+        CreatedBy varchar(20) NULL,
+        RowVersion rowversion
+    );
+END;
 GO
 
--- MembershipPointEntry
-CREATE TABLE dbo.[MembershipPointEntry] (
-
-    InvoiceId varchar(20) NOT NULL CONSTRAINT PK_MembershipPointEntry PRIMARY KEY,
-    MembershipId varchar(20) NOT NULL,
-    Points bigint NOT NULL,
-    CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_PointEntry_Created DEFAULT SYSUTCDATETIME()
-);
+IF OBJECT_ID(N'dbo.InvoiceLine', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[InvoiceLine] (
+        InvoiceLineId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_InvoiceLine PRIMARY KEY,
+        InvoiceId varchar(20) NOT NULL,
+        LineType varchar(20) NOT NULL,
+        ServiceId varchar(20) NULL,
+        Description nvarchar(200) NOT NULL,
+        Quantity decimal(10,2) NOT NULL,
+        UnitPrice decimal(18,2) NOT NULL,
+        LineAmount AS CONVERT(decimal(18,2), Quantity * UnitPrice) PERSISTED
+    );
+END;
 GO
 
--- HousekeepingTask
-CREATE TABLE dbo.[HousekeepingTask] (
-
-    TaskId varchar(20) NOT NULL CONSTRAINT PK_HousekeepingTask PRIMARY KEY,
-    RoomId varchar(20) NOT NULL,
-    StayId varchar(20) NULL,
-    CheckoutAt datetime2(0) NOT NULL,
-    DeadlineAt datetime2(0) NOT NULL,
-    CompletedAt datetime2(0) NULL,
-    StatusCode varchar(20) NOT NULL,
-    AssignedTo varchar(20) NULL
-);
+IF OBJECT_ID(N'dbo.Payment', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[Payment] (
+        PaymentId varchar(30) NOT NULL CONSTRAINT PK_Payment PRIMARY KEY,
+        BookingId varchar(20) NULL,
+        InvoiceId varchar(20) NULL,
+        PaymentKind varchar(20) NOT NULL,
+        Amount decimal(18,2) NOT NULL,
+        MethodCode varchar(20) NOT NULL,
+        ExternalReference varchar(100) NULL,
+        PaidAt datetime2(0) NOT NULL CONSTRAINT DF_Payment_Paid DEFAULT SYSUTCDATETIME(),
+        CreatedBy varchar(20) NULL
+    );
+END;
 GO
 
--- DamageReport
-CREATE TABLE dbo.[DamageReport] (
-
-    DamageReportId varchar(20) NOT NULL CONSTRAINT PK_DamageReport PRIMARY KEY,
-    RoomId varchar(20) NOT NULL,
-    TaskId varchar(20) NULL,
-    Description nvarchar(1000) NOT NULL,
-    PhotoPath nvarchar(512) NOT NULL,
-    ReportedAt datetime2(0) NOT NULL CONSTRAINT DF_Damage_Reported DEFAULT SYSUTCDATETIME(),
-    ReportedBy varchar(20) NOT NULL
-);
+IF OBJECT_ID(N'dbo.MembershipPointEntry', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[MembershipPointEntry] (
+        InvoiceId varchar(20) NOT NULL CONSTRAINT PK_MembershipPointEntry PRIMARY KEY,
+        MembershipId varchar(20) NOT NULL,
+        Points bigint NOT NULL,
+        CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_PointEntry_Created DEFAULT SYSUTCDATETIME()
+    );
+END;
 GO
 
--- HotelSetting
-CREATE TABLE dbo.[HotelSetting] (
-
-    SettingId tinyint NOT NULL CONSTRAINT PK_HotelSetting PRIMARY KEY,
-    HotelName nvarchar(200) NOT NULL,
-    Address nvarchar(512) NOT NULL,
-    Hotline varchar(15) NOT NULL,
-    CheckInTime time(0) NOT NULL,
-    CheckOutTime time(0) NOT NULL,
-    LateFeeFrom time(0) NOT NULL,
-    LateFeePercent decimal(7,2) NOT NULL,
-    BankCode varchar(30) NULL,
-    BankAccount varchar(40) NULL,
-    BankOwner nvarchar(150) NULL,
-    LogoPath nvarchar(512) NULL
-);
+IF OBJECT_ID(N'dbo.HousekeepingTask', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[HousekeepingTask] (
+        TaskId varchar(20) NOT NULL CONSTRAINT PK_HousekeepingTask PRIMARY KEY,
+        RoomId varchar(20) NOT NULL,
+        StayId varchar(20) NULL,
+        CheckoutAt datetime2(0) NOT NULL,
+        DeadlineAt datetime2(0) NOT NULL,
+        CompletedAt datetime2(0) NULL,
+        StatusCode varchar(20) NOT NULL,
+        AssignedTo varchar(20) NULL
+    );
+END;
 GO
 
--- BackupHistory
-CREATE TABLE dbo.[BackupHistory] (
-
-    BackupId varchar(30) NOT NULL CONSTRAINT PK_BackupHistory PRIMARY KEY,
-    FilePath nvarchar(512) NOT NULL,
-    BackupAt datetime2(0) NOT NULL,
-    CreatedBy varchar(20) NOT NULL,
-    StatusCode varchar(20) NOT NULL,
-    Note nvarchar(500) NOT NULL CONSTRAINT DF_Backup_Note DEFAULT N''
-);
+IF OBJECT_ID(N'dbo.DamageReport', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[DamageReport] (
+        DamageReportId varchar(20) NOT NULL CONSTRAINT PK_DamageReport PRIMARY KEY,
+        RoomId varchar(20) NOT NULL,
+        TaskId varchar(20) NULL,
+        Description nvarchar(1000) NOT NULL,
+        PhotoPath nvarchar(512) NOT NULL,
+        ReportedAt datetime2(0) NOT NULL CONSTRAINT DF_Damage_Reported DEFAULT SYSUTCDATETIME(),
+        ReportedBy varchar(20) NOT NULL
+    );
+END;
 GO
 
--- AuditEvent
-CREATE TABLE dbo.[AuditEvent] (
-
-    AuditEventId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_AuditEvent PRIMARY KEY,
-    EventAt datetime2(0) NOT NULL CONSTRAINT DF_Audit_Time DEFAULT SYSUTCDATETIME(),
-    ActorId varchar(20) NULL,
-    ActionName nvarchar(100) NOT NULL,
-    ObjectType varchar(30) NOT NULL,
-    ObjectId varchar(40) NOT NULL,
-    Detail nvarchar(2000) NOT NULL CONSTRAINT DF_Audit_Detail DEFAULT N''
-);
+IF OBJECT_ID(N'dbo.HotelSetting', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[HotelSetting] (
+        SettingId tinyint NOT NULL CONSTRAINT PK_HotelSetting PRIMARY KEY,
+        HotelName nvarchar(200) NOT NULL,
+        Address nvarchar(512) NOT NULL,
+        Hotline varchar(15) NOT NULL,
+        CheckInTime time(0) NOT NULL,
+        CheckOutTime time(0) NOT NULL,
+        LateFeeFrom time(0) NOT NULL,
+        LateFeePercent decimal(7,2) NOT NULL,
+        BankCode varchar(30) NULL,
+        BankAccount varchar(40) NULL,
+        BankOwner nvarchar(150) NULL,
+        LogoPath nvarchar(512) NULL,
+        QrImagePath nvarchar(512) NULL
+    );
+END;
 GO
 
--- ServiceUsage
-CREATE TABLE dbo.[ServiceUsage] (
-      UsageId varchar(20) NOT NULL CONSTRAINT PK_ServiceUsage PRIMARY KEY,
-      StayId varchar(20) NOT NULL,
-      ServiceId varchar(20) NOT NULL,
-      Quantity decimal(10,2) NOT NULL,
-      UnitPrice decimal(18,2) NOT NULL,
-      UsedAt datetime2(0) NOT NULL CONSTRAINT DF_Usage_UsedAt DEFAULT SYSUTCDATETIME(),
-      IsVoided bit NOT NULL CONSTRAINT DF_Usage_Void DEFAULT 0
-);
+IF OBJECT_ID(N'dbo.BackupHistory', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[BackupHistory] (
+        BackupId varchar(30) NOT NULL CONSTRAINT PK_BackupHistory PRIMARY KEY,
+        FilePath nvarchar(512) NOT NULL,
+        BackupAt datetime2(0) NOT NULL,
+        CreatedBy varchar(20) NOT NULL,
+        StatusCode varchar(20) NOT NULL,
+        Note nvarchar(500) NOT NULL CONSTRAINT DF_Backup_Note DEFAULT N''
+    );
+END;
 GO
 
--- FOREIGN KEYS: exactly the 28 relationships of the report DBML.
-
-ALTER TABLE dbo.[Customer] WITH CHECK ADD CONSTRAINT FK_Customer_AccountId FOREIGN KEY ([AccountId]) REFERENCES dbo.[Account]([AccountId]);
+IF OBJECT_ID(N'dbo.AuditEvent', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[AuditEvent] (
+        AuditEventId bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_AuditEvent PRIMARY KEY,
+        EventAt datetime2(0) NOT NULL CONSTRAINT DF_Audit_Time DEFAULT SYSUTCDATETIME(),
+        ActorId varchar(20) NULL,
+        ActionName nvarchar(100) NOT NULL,
+        ObjectType varchar(30) NOT NULL,
+        ObjectId varchar(40) NOT NULL,
+        Detail nvarchar(2000) NOT NULL CONSTRAINT DF_Audit_Detail DEFAULT N''
+    );
+END;
 GO
 
-ALTER TABLE dbo.[Membership] WITH CHECK ADD CONSTRAINT FK_Membership_CustomerId FOREIGN KEY ([CustomerId]) REFERENCES dbo.[Customer]([CustomerId]);
+IF OBJECT_ID(N'dbo.ServiceUsage', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.[ServiceUsage] (
+        UsageId varchar(20) NOT NULL CONSTRAINT PK_ServiceUsage PRIMARY KEY,
+        StayId varchar(20) NOT NULL,
+        ServiceId varchar(20) NOT NULL,
+        Quantity decimal(10,2) NOT NULL,
+        UnitPrice decimal(18,2) NOT NULL,
+        UsedAt datetime2(0) NOT NULL CONSTRAINT DF_Usage_UsedAt DEFAULT SYSUTCDATETIME(),
+        RecordedBy varchar(20) NULL,
+        IsVoided bit NOT NULL CONSTRAINT DF_Usage_Void DEFAULT 0,
+        InvoiceId varchar(20) NULL
+    );
+END;
 GO
 
-ALTER TABLE dbo.[Room] WITH CHECK ADD CONSTRAINT FK_Room_RoomTypeId FOREIGN KEY ([RoomTypeId]) REFERENCES dbo.[RoomType]([RoomTypeId]);
+-- Version 2 -> 3 additive migration. Nullable actor columns preserve legacy/system rows.
+IF COL_LENGTH(N'dbo.Booking', N'CreatedBy') IS NULL
+    ALTER TABLE dbo.Booking ADD CreatedBy varchar(20) NULL;
+IF COL_LENGTH(N'dbo.Stay', N'CreatedBy') IS NULL
+    ALTER TABLE dbo.Stay ADD CreatedBy varchar(20) NULL;
+IF COL_LENGTH(N'dbo.Invoice', N'CreatedBy') IS NULL
+    ALTER TABLE dbo.Invoice ADD CreatedBy varchar(20) NULL;
+IF COL_LENGTH(N'dbo.Invoice', N'RowVersion') IS NULL
+    ALTER TABLE dbo.Invoice ADD RowVersion rowversion;
+IF COL_LENGTH(N'dbo.Payment', N'CreatedBy') IS NULL
+    ALTER TABLE dbo.Payment ADD CreatedBy varchar(20) NULL;
+IF COL_LENGTH(N'dbo.ServiceUsage', N'RecordedBy') IS NULL
+    ALTER TABLE dbo.ServiceUsage ADD RecordedBy varchar(20) NULL;
+IF COL_LENGTH(N'dbo.ServiceUsage', N'InvoiceId') IS NULL
+    ALTER TABLE dbo.ServiceUsage ADD InvoiceId varchar(20) NULL;
+IF COL_LENGTH(N'dbo.HotelSetting', N'QrImagePath') IS NULL
+    ALTER TABLE dbo.HotelSetting ADD QrImagePath nvarchar(512) NULL;
+IF COL_LENGTH(N'dbo.Room', N'ImageGalleryJson') IS NULL
+    ALTER TABLE dbo.Room ADD ImageGalleryJson nvarchar(2000) NULL;
+IF COL_LENGTH(N'dbo.Room', N'ViewName') IS NULL
+    ALTER TABLE dbo.Room ADD ViewName nvarchar(100) NULL;
+IF COL_LENGTH(N'dbo.Room', N'Amenities') IS NULL
+    ALTER TABLE dbo.Room ADD Amenities nvarchar(1000) NULL;
 GO
 
-ALTER TABLE dbo.[RoomTypeService] WITH CHECK ADD CONSTRAINT FK_RoomTypeService_RoomTypeId FOREIGN KEY ([RoomTypeId]) REFERENCES dbo.[RoomType]([RoomTypeId]);
+IF COL_LENGTH(N'dbo.HolidayRate', N'ScheduleType') IS NULL
+    ALTER TABLE dbo.HolidayRate ADD ScheduleType varchar(10) NOT NULL
+        CONSTRAINT DF_HolidayRate_ScheduleType DEFAULT 'ONE_OFF' WITH VALUES;
+IF COL_LENGTH(N'dbo.HolidayRate', N'StartMonthDay') IS NULL
+    ALTER TABLE dbo.HolidayRate ADD StartMonthDay char(5) NULL;
+IF COL_LENGTH(N'dbo.HolidayRate', N'EndMonthDay') IS NULL
+    ALTER TABLE dbo.HolidayRate ADD EndMonthDay char(5) NULL;
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.HolidayRate') AND name = N'StartDate' AND is_nullable = 0)
+    ALTER TABLE dbo.HolidayRate ALTER COLUMN StartDate date NULL;
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.HolidayRate') AND name = N'EndDate' AND is_nullable = 0)
+    ALTER TABLE dbo.HolidayRate ALTER COLUMN EndDate date NULL;
 GO
 
-ALTER TABLE dbo.[RoomTypeService] WITH CHECK ADD CONSTRAINT FK_RoomTypeService_ServiceId FOREIGN KEY ([ServiceId]) REFERENCES dbo.[HotelService]([ServiceId]);
+IF COL_LENGTH(N'dbo.Invoice', N'CustomerId') IS NULL
+    ALTER TABLE dbo.Invoice ADD CustomerId varchar(20) NULL;
+UPDATE i
+SET CustomerId = b.CustomerId
+FROM dbo.Invoice AS i
+JOIN dbo.Stay AS s ON s.StayId = i.StayId
+JOIN dbo.Booking AS b ON b.BookingId = s.BookingId
+WHERE i.CustomerId IS NULL;
+IF EXISTS (SELECT 1 FROM dbo.Invoice WHERE CustomerId IS NULL)
+    THROW 51010, N'Cannot migrate Invoice.CustomerId because an invoice has no Stay -> Booking -> Customer owner.', 1;
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.Invoice') AND name = N'CustomerId' AND is_nullable = 1)
+    ALTER TABLE dbo.Invoice ALTER COLUMN CustomerId varchar(20) NOT NULL;
 GO
 
-ALTER TABLE dbo.[HolidayRate] WITH CHECK ADD CONSTRAINT FK_HolidayRate_RoomTypeId FOREIGN KEY ([RoomTypeId]) REFERENCES dbo.[RoomType]([RoomTypeId]);
+IF COL_LENGTH(N'dbo.Invoice', N'CustomerNameSnapshot') IS NULL
+    ALTER TABLE dbo.Invoice ADD CustomerNameSnapshot nvarchar(120) NULL;
+IF COL_LENGTH(N'dbo.Invoice', N'CustomerIdentitySnapshot') IS NULL
+    ALTER TABLE dbo.Invoice ADD CustomerIdentitySnapshot varchar(30) NULL;
+IF COL_LENGTH(N'dbo.Invoice', N'CustomerPhoneSnapshot') IS NULL
+    ALTER TABLE dbo.Invoice ADD CustomerPhoneSnapshot varchar(30) NULL;
+IF COL_LENGTH(N'dbo.Invoice', N'RoomNameSnapshot') IS NULL
+    ALTER TABLE dbo.Invoice ADD RoomNameSnapshot nvarchar(100) NULL;
+IF COL_LENGTH(N'dbo.Invoice', N'HotelNameSnapshot') IS NULL
+    ALTER TABLE dbo.Invoice ADD HotelNameSnapshot nvarchar(200) NULL;
+IF COL_LENGTH(N'dbo.Invoice', N'HotelAddressSnapshot') IS NULL
+    ALTER TABLE dbo.Invoice ADD HotelAddressSnapshot nvarchar(512) NULL;
+IF COL_LENGTH(N'dbo.Invoice', N'HotelHotlineSnapshot') IS NULL
+    ALTER TABLE dbo.Invoice ADD HotelHotlineSnapshot varchar(30) NULL;
+IF COL_LENGTH(N'dbo.Invoice', N'PaymentReferenceSnapshot') IS NULL
+    ALTER TABLE dbo.Invoice ADD PaymentReferenceSnapshot varchar(100) NULL;
 GO
 
-ALTER TABLE dbo.[Booking] WITH CHECK ADD CONSTRAINT FK_Booking_CustomerId FOREIGN KEY ([CustomerId]) REFERENCES dbo.[Customer]([CustomerId]);
+UPDATE i
+SET CustomerNameSnapshot = COALESCE(i.CustomerNameSnapshot, c.FullName),
+    CustomerIdentitySnapshot = COALESCE(i.CustomerIdentitySnapshot, c.IdentityNo),
+    CustomerPhoneSnapshot = COALESCE(i.CustomerPhoneSnapshot, c.Phone),
+    RoomNameSnapshot = COALESCE(i.RoomNameSnapshot, roomInfo.RoomName),
+    HotelNameSnapshot = COALESCE(i.HotelNameSnapshot, hs.HotelName),
+    HotelAddressSnapshot = COALESCE(i.HotelAddressSnapshot, hs.Address),
+    HotelHotlineSnapshot = COALESCE(i.HotelHotlineSnapshot, hs.Hotline),
+    PaymentReferenceSnapshot = COALESCE(i.PaymentReferenceSnapshot, paymentInfo.ExternalReference)
+FROM dbo.Invoice AS i
+JOIN dbo.Customer AS c ON c.CustomerId = i.CustomerId
+CROSS JOIN dbo.HotelSetting AS hs
+OUTER APPLY (
+    SELECT TOP (1) r.Name AS RoomName
+    FROM dbo.StayRoomHistory AS srh
+    JOIN dbo.Room AS r ON r.RoomId = srh.RoomId
+    WHERE srh.StayId = i.StayId
+    ORDER BY srh.FromAt DESC
+) AS roomInfo
+OUTER APPLY (
+    SELECT TOP (1) p.ExternalReference
+    FROM dbo.Payment AS p
+    WHERE p.InvoiceId = i.InvoiceId
+    ORDER BY p.PaidAt DESC
+) AS paymentInfo;
 GO
 
-ALTER TABLE dbo.[Booking] WITH CHECK ADD CONSTRAINT FK_Booking_RoomId FOREIGN KEY ([RoomId]) REFERENCES dbo.[Room]([RoomId]);
+-- Backfill links and attribution that can be derived without inventing actors.
+UPDATE su
+SET InvoiceId = i.InvoiceId
+FROM dbo.ServiceUsage AS su
+JOIN dbo.Invoice AS i ON i.StayId = su.StayId
+WHERE su.InvoiceId IS NULL AND su.IsVoided = 0;
+UPDATE i
+SET CreatedBy = a.ActorId
+FROM dbo.Invoice AS i
+CROSS APPLY (
+    SELECT TOP (1) ae.ActorId
+    FROM dbo.AuditEvent AS ae
+    WHERE ae.ObjectType IN ('Invoice', 'INVOICE') AND ae.ObjectId = i.InvoiceId
+    ORDER BY ae.AuditEventId DESC
+) AS a
+WHERE i.CreatedBy IS NULL;
+UPDATE p
+SET CreatedBy = i.CreatedBy
+FROM dbo.Payment AS p
+JOIN dbo.Invoice AS i ON i.InvoiceId = p.InvoiceId
+WHERE p.CreatedBy IS NULL AND i.CreatedBy IS NOT NULL;
+UPDATE su
+SET RecordedBy = i.CreatedBy
+FROM dbo.ServiceUsage AS su
+JOIN dbo.Invoice AS i ON i.InvoiceId = su.InvoiceId
+WHERE su.RecordedBy IS NULL AND i.CreatedBy IS NOT NULL;
 GO
 
-ALTER TABLE dbo.[Stay] WITH CHECK ADD CONSTRAINT FK_Stay_BookingId FOREIGN KEY ([BookingId]) REFERENCES dbo.[Booking]([BookingId]);
+-- Foreign keys. Conditional guards make the installer rerunnable.
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Customer_AccountId')
+    ALTER TABLE dbo.[Customer] WITH CHECK ADD CONSTRAINT FK_Customer_AccountId FOREIGN KEY ([AccountId]) REFERENCES dbo.[Account]([AccountId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Membership_CustomerId')
+    ALTER TABLE dbo.[Membership] WITH CHECK ADD CONSTRAINT FK_Membership_CustomerId FOREIGN KEY ([CustomerId]) REFERENCES dbo.[Customer]([CustomerId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Room_RoomTypeId')
+    ALTER TABLE dbo.[Room] WITH CHECK ADD CONSTRAINT FK_Room_RoomTypeId FOREIGN KEY ([RoomTypeId]) REFERENCES dbo.[RoomType]([RoomTypeId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_RoomTypeService_RoomTypeId')
+    ALTER TABLE dbo.[RoomTypeService] WITH CHECK ADD CONSTRAINT FK_RoomTypeService_RoomTypeId FOREIGN KEY ([RoomTypeId]) REFERENCES dbo.[RoomType]([RoomTypeId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_RoomTypeService_ServiceId')
+    ALTER TABLE dbo.[RoomTypeService] WITH CHECK ADD CONSTRAINT FK_RoomTypeService_ServiceId FOREIGN KEY ([ServiceId]) REFERENCES dbo.[HotelService]([ServiceId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_HolidayRate_RoomTypeId')
+    ALTER TABLE dbo.[HolidayRate] WITH CHECK ADD CONSTRAINT FK_HolidayRate_RoomTypeId FOREIGN KEY ([RoomTypeId]) REFERENCES dbo.[RoomType]([RoomTypeId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Booking_CustomerId')
+    ALTER TABLE dbo.[Booking] WITH CHECK ADD CONSTRAINT FK_Booking_CustomerId FOREIGN KEY ([CustomerId]) REFERENCES dbo.[Customer]([CustomerId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Booking_RoomId')
+    ALTER TABLE dbo.[Booking] WITH CHECK ADD CONSTRAINT FK_Booking_RoomId FOREIGN KEY ([RoomId]) REFERENCES dbo.[Room]([RoomId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Booking_CreatedBy')
+    ALTER TABLE dbo.[Booking] WITH CHECK ADD CONSTRAINT FK_Booking_CreatedBy FOREIGN KEY ([CreatedBy]) REFERENCES dbo.[Account]([AccountId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Stay_BookingId')
+    ALTER TABLE dbo.[Stay] WITH CHECK ADD CONSTRAINT FK_Stay_BookingId FOREIGN KEY ([BookingId]) REFERENCES dbo.[Booking]([BookingId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Stay_CreatedBy')
+    ALTER TABLE dbo.[Stay] WITH CHECK ADD CONSTRAINT FK_Stay_CreatedBy FOREIGN KEY ([CreatedBy]) REFERENCES dbo.[Account]([AccountId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_StayRoomHistory_StayId')
+    ALTER TABLE dbo.[StayRoomHistory] WITH CHECK ADD CONSTRAINT FK_StayRoomHistory_StayId FOREIGN KEY ([StayId]) REFERENCES dbo.[Stay]([StayId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_StayRoomHistory_RoomId')
+    ALTER TABLE dbo.[StayRoomHistory] WITH CHECK ADD CONSTRAINT FK_StayRoomHistory_RoomId FOREIGN KEY ([RoomId]) REFERENCES dbo.[Room]([RoomId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_ServiceUsage_StayId')
+    ALTER TABLE dbo.[ServiceUsage] WITH CHECK ADD CONSTRAINT FK_ServiceUsage_StayId FOREIGN KEY ([StayId]) REFERENCES dbo.[Stay]([StayId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_ServiceUsage_ServiceId')
+    ALTER TABLE dbo.[ServiceUsage] WITH CHECK ADD CONSTRAINT FK_ServiceUsage_ServiceId FOREIGN KEY ([ServiceId]) REFERENCES dbo.[HotelService]([ServiceId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_ServiceUsage_RecordedBy')
+    ALTER TABLE dbo.[ServiceUsage] WITH CHECK ADD CONSTRAINT FK_ServiceUsage_RecordedBy FOREIGN KEY ([RecordedBy]) REFERENCES dbo.[Account]([AccountId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_ServiceUsage_InvoiceId')
+    ALTER TABLE dbo.[ServiceUsage] WITH CHECK ADD CONSTRAINT FK_ServiceUsage_InvoiceId FOREIGN KEY ([InvoiceId]) REFERENCES dbo.[Invoice]([InvoiceId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Invoice_StayId')
+    ALTER TABLE dbo.[Invoice] WITH CHECK ADD CONSTRAINT FK_Invoice_StayId FOREIGN KEY ([StayId]) REFERENCES dbo.[Stay]([StayId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Invoice_CustomerId')
+    ALTER TABLE dbo.[Invoice] WITH CHECK ADD CONSTRAINT FK_Invoice_CustomerId FOREIGN KEY ([CustomerId]) REFERENCES dbo.[Customer]([CustomerId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Invoice_CreatedBy')
+    ALTER TABLE dbo.[Invoice] WITH CHECK ADD CONSTRAINT FK_Invoice_CreatedBy FOREIGN KEY ([CreatedBy]) REFERENCES dbo.[Account]([AccountId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_InvoiceLine_InvoiceId')
+    ALTER TABLE dbo.[InvoiceLine] WITH CHECK ADD CONSTRAINT FK_InvoiceLine_InvoiceId FOREIGN KEY ([InvoiceId]) REFERENCES dbo.[Invoice]([InvoiceId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_InvoiceLine_ServiceId')
+    ALTER TABLE dbo.[InvoiceLine] WITH CHECK ADD CONSTRAINT FK_InvoiceLine_ServiceId FOREIGN KEY ([ServiceId]) REFERENCES dbo.[HotelService]([ServiceId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Payment_BookingId')
+    ALTER TABLE dbo.[Payment] WITH CHECK ADD CONSTRAINT FK_Payment_BookingId FOREIGN KEY ([BookingId]) REFERENCES dbo.[Booking]([BookingId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Payment_InvoiceId')
+    ALTER TABLE dbo.[Payment] WITH CHECK ADD CONSTRAINT FK_Payment_InvoiceId FOREIGN KEY ([InvoiceId]) REFERENCES dbo.[Invoice]([InvoiceId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Payment_CreatedBy')
+    ALTER TABLE dbo.[Payment] WITH CHECK ADD CONSTRAINT FK_Payment_CreatedBy FOREIGN KEY ([CreatedBy]) REFERENCES dbo.[Account]([AccountId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_MembershipPointEntry_InvoiceId')
+    ALTER TABLE dbo.[MembershipPointEntry] WITH CHECK ADD CONSTRAINT FK_MembershipPointEntry_InvoiceId FOREIGN KEY ([InvoiceId]) REFERENCES dbo.[Invoice]([InvoiceId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_MembershipPointEntry_MembershipId')
+    ALTER TABLE dbo.[MembershipPointEntry] WITH CHECK ADD CONSTRAINT FK_MembershipPointEntry_MembershipId FOREIGN KEY ([MembershipId]) REFERENCES dbo.[Membership]([MembershipId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_HousekeepingTask_RoomId')
+    ALTER TABLE dbo.[HousekeepingTask] WITH CHECK ADD CONSTRAINT FK_HousekeepingTask_RoomId FOREIGN KEY ([RoomId]) REFERENCES dbo.[Room]([RoomId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_HousekeepingTask_StayId')
+    ALTER TABLE dbo.[HousekeepingTask] WITH CHECK ADD CONSTRAINT FK_HousekeepingTask_StayId FOREIGN KEY ([StayId]) REFERENCES dbo.[Stay]([StayId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_HousekeepingTask_AssignedTo')
+    ALTER TABLE dbo.[HousekeepingTask] WITH CHECK ADD CONSTRAINT FK_HousekeepingTask_AssignedTo FOREIGN KEY ([AssignedTo]) REFERENCES dbo.[Account]([AccountId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_DamageReport_RoomId')
+    ALTER TABLE dbo.[DamageReport] WITH CHECK ADD CONSTRAINT FK_DamageReport_RoomId FOREIGN KEY ([RoomId]) REFERENCES dbo.[Room]([RoomId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_DamageReport_TaskId')
+    ALTER TABLE dbo.[DamageReport] WITH CHECK ADD CONSTRAINT FK_DamageReport_TaskId FOREIGN KEY ([TaskId]) REFERENCES dbo.[HousekeepingTask]([TaskId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_DamageReport_ReportedBy')
+    ALTER TABLE dbo.[DamageReport] WITH CHECK ADD CONSTRAINT FK_DamageReport_ReportedBy FOREIGN KEY ([ReportedBy]) REFERENCES dbo.[Account]([AccountId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_BackupHistory_CreatedBy')
+    ALTER TABLE dbo.[BackupHistory] WITH CHECK ADD CONSTRAINT FK_BackupHistory_CreatedBy FOREIGN KEY ([CreatedBy]) REFERENCES dbo.[Account]([AccountId]);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_AuditEvent_ActorId')
+    ALTER TABLE dbo.[AuditEvent] WITH CHECK ADD CONSTRAINT FK_AuditEvent_ActorId FOREIGN KEY ([ActorId]) REFERENCES dbo.[Account]([AccountId]);
 GO
 
-ALTER TABLE dbo.[StayRoomHistory] WITH CHECK ADD CONSTRAINT FK_StayRoomHistory_StayId FOREIGN KEY ([StayId]) REFERENCES dbo.[Stay]([StayId]);
+-- Natural-key and workflow indexes.
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Account') AND name = N'UX_Account_Email')
+    CREATE UNIQUE INDEX UX_Account_Email ON dbo.Account(Email);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Account') AND name = N'UX_Account_Phone')
+    CREATE UNIQUE INDEX UX_Account_Phone ON dbo.Account(Phone);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Customer') AND name IN (N'UX_Customer_Account_NotNull', N'UX_Report_Customer_Account_NotNull'))
+    CREATE UNIQUE INDEX UX_Customer_Account_NotNull ON dbo.Customer(AccountId) WHERE AccountId IS NOT NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Customer') AND name = N'UX_Customer_IdentityNo_NotNull')
+    CREATE UNIQUE INDEX UX_Customer_IdentityNo_NotNull ON dbo.Customer(IdentityNo) WHERE IdentityNo IS NOT NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Room') AND name = N'UX_Room_Name')
+    CREATE UNIQUE INDEX UX_Room_Name ON dbo.Room(Name);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Membership') AND name IN (N'UQ_Membership_Customer', N'UQ_Report_Membership_Customer'))
+    ALTER TABLE dbo.Membership ADD CONSTRAINT UQ_Membership_Customer UNIQUE (CustomerId);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Stay') AND name IN (N'UQ_Stay_Booking', N'UQ_Report_Stay_Booking'))
+    ALTER TABLE dbo.Stay ADD CONSTRAINT UQ_Stay_Booking UNIQUE (BookingId);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Invoice') AND name IN (N'UQ_Invoice_Stay', N'UQ_Report_Invoice_Stay'))
+    ALTER TABLE dbo.Invoice ADD CONSTRAINT UQ_Invoice_Stay UNIQUE (StayId);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.StayRoomHistory') AND name IN (N'UX_StayHistory_OneOpen', N'UX_Report_StayHistory_OneOpen'))
+    CREATE UNIQUE INDEX UX_StayHistory_OneOpen ON dbo.StayRoomHistory(StayId) WHERE ToAt IS NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.StayRoomHistory') AND name = N'UX_StayHistory_OneOpenRoom')
+    CREATE UNIQUE INDEX UX_StayHistory_OneOpenRoom ON dbo.StayRoomHistory(RoomId) WHERE ToAt IS NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Booking') AND name = N'IX_Booking_Room_Status_Dates')
+    CREATE INDEX IX_Booking_Room_Status_Dates ON dbo.Booking(RoomId, StatusCode, StartAt, EndAt);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Invoice') AND name = N'IX_Invoice_Customer_IssuedAt')
+    CREATE INDEX IX_Invoice_Customer_IssuedAt ON dbo.Invoice(CustomerId, IssuedAt DESC);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.ServiceUsage') AND name = N'IX_ServiceUsage_Stay_Invoice')
+    CREATE INDEX IX_ServiceUsage_Stay_Invoice ON dbo.ServiceUsage(StayId, InvoiceId) INCLUDE (ServiceId, Quantity, UnitPrice, IsVoided);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Payment') AND name = N'IX_Payment_Booking')
+    CREATE INDEX IX_Payment_Booking ON dbo.Payment(BookingId) WHERE BookingId IS NOT NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Payment') AND name = N'IX_Payment_Invoice')
+    CREATE INDEX IX_Payment_Invoice ON dbo.Payment(InvoiceId) WHERE InvoiceId IS NOT NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.AuditEvent') AND name = N'IX_AuditEvent_EventAt')
+    CREATE INDEX IX_AuditEvent_EventAt ON dbo.AuditEvent(EventAt DESC, AuditEventId DESC);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.HolidayRate') AND name = N'IX_HolidayRate_Type_Active')
+    CREATE INDEX IX_HolidayRate_Type_Active ON dbo.HolidayRate(RoomTypeId, IsActive, ScheduleType, StartDate, EndDate);
 GO
 
-ALTER TABLE dbo.[StayRoomHistory] WITH CHECK ADD CONSTRAINT FK_StayRoomHistory_RoomId FOREIGN KEY ([RoomId]) REFERENCES dbo.[Room]([RoomId]);
+-- Checks retained from v2 are accepted by either their legacy or canonical name.
+-- MANAGER is the highest application role; ADMIN manages daily operations.
+-- The application RBAC matrix enforces permissions for these stored role codes.
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_Account_Role')
+    ALTER TABLE dbo.Account WITH CHECK ADD CONSTRAINT CK_Account_Role
+        CHECK (RoleCode IN ('MANAGER','ADMIN','RECEPTIONIST','HOUSEKEEPER','CUSTOMER'));
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name IN (N'CK_Booking_Dates', N'CK_Report_Booking_Dates'))
+    ALTER TABLE dbo.Booking ADD CONSTRAINT CK_Booking_Dates CHECK (EndAt > StartAt);
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name IN (N'CK_Booking_Guests', N'CK_Report_Booking_Guests'))
+    ALTER TABLE dbo.Booking ADD CONSTRAINT CK_Booking_Guests CHECK (GuestCount > 0);
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name IN (N'CK_Booking_Amounts', N'CK_Report_Booking_Amounts'))
+    ALTER TABLE dbo.Booking ADD CONSTRAINT CK_Booking_Amounts CHECK (RoomCharge >= 0 AND DepositAmount >= 0 AND DepositAmount <= RoomCharge);
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_Booking_DepositCap')
+    ALTER TABLE dbo.Booking ADD CONSTRAINT CK_Booking_DepositCap CHECK (DepositAmount <= RoomCharge);
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_Booking_Status')
+    ALTER TABLE dbo.Booking ADD CONSTRAINT CK_Booking_Status CHECK (StatusCode IN ('PENDING','CONFIRMED','CHECKED_IN','COMPLETED','CANCELLED'));
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_Booking_Channel')
+    ALTER TABLE dbo.Booking ADD CONSTRAINT CK_Booking_Channel CHECK (ChannelCode IN ('ONLINE','COUNTER'));
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name IN (N'CK_Stay_Dates', N'CK_Report_Stay_Dates'))
+    ALTER TABLE dbo.Stay ADD CONSTRAINT CK_Stay_Dates CHECK (CheckOutAt IS NULL OR CheckOutAt >= CheckInAt);
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name IN (N'CK_Stay_Amounts', N'CK_Report_Stay_Amounts'))
+    ALTER TABLE dbo.Stay ADD CONSTRAINT CK_Stay_Amounts CHECK (RoomCharge >= 0 AND Surcharge >= 0);
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name IN (N'CK_History_Dates', N'CK_Report_History_Dates'))
+    ALTER TABLE dbo.StayRoomHistory ADD CONSTRAINT CK_History_Dates CHECK (ToAt IS NULL OR ToAt > FromAt);
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name IN (N'CK_History_Extra', N'CK_Report_History_Extra'))
+    ALTER TABLE dbo.StayRoomHistory ADD CONSTRAINT CK_History_Extra CHECK (ExtraCharge >= 0);
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name IN (N'CK_RoomType_Values', N'CK_Report_RoomType_Values'))
+    ALTER TABLE dbo.RoomType ADD CONSTRAINT CK_RoomType_Values CHECK (Capacity > 0 AND Beds > 0 AND HourlyPrice > 0 AND NightlyPrice > 0 AND DailyPrice > 0);
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name IN (N'CK_Service_Price', N'CK_Report_Service_Price'))
+    ALTER TABLE dbo.HotelService ADD CONSTRAINT CK_Service_Price CHECK (Price >= 0);
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_Room_ImageGalleryJson')
+    ALTER TABLE dbo.Room ADD CONSTRAINT CK_Room_ImageGalleryJson CHECK (ImageGalleryJson IS NULL OR ISJSON(ImageGalleryJson) = 1);
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_HolidayRate_Schedule')
+    ALTER TABLE dbo.HolidayRate ADD CONSTRAINT CK_HolidayRate_Schedule CHECK (
+        IncreasePercent BETWEEN 0 AND 1000 AND (
+            (ScheduleType = 'ONE_OFF' AND StartDate IS NOT NULL AND EndDate IS NOT NULL AND StartDate <= EndDate AND StartMonthDay IS NULL AND EndMonthDay IS NULL)
+            OR
+            (ScheduleType = 'ANNUAL' AND StartDate IS NULL AND EndDate IS NULL
+                AND TRY_CONVERT(date, '2000-' + StartMonthDay, 23) IS NOT NULL
+                AND TRY_CONVERT(date, '2000-' + EndMonthDay, 23) IS NOT NULL)
+        )
+    );
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name IN (N'CK_Usage_Values', N'CK_Report_Usage_Values'))
+    ALTER TABLE dbo.ServiceUsage ADD CONSTRAINT CK_Usage_Values CHECK (Quantity > 0 AND UnitPrice >= 0);
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name IN (N'CK_InvoiceLine_Values', N'CK_Report_InvoiceLine_Values'))
+    ALTER TABLE dbo.InvoiceLine ADD CONSTRAINT CK_InvoiceLine_Values CHECK (Quantity > 0 AND UnitPrice >= 0);
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_InvoiceLine_Type')
+    ALTER TABLE dbo.InvoiceLine ADD CONSTRAINT CK_InvoiceLine_Type CHECK (
+        (LineType = 'SERVICE' AND ServiceId IS NOT NULL) OR
+        (LineType IN ('ROOM','SURCHARGE','DISCOUNT') AND ServiceId IS NULL)
+    );
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name IN (N'CK_Invoice_Amounts', N'CK_Report_Invoice_Amounts'))
+    ALTER TABLE dbo.Invoice ADD CONSTRAINT CK_Invoice_Amounts CHECK (RoomCharge >= 0 AND ServiceCharge >= 0 AND Surcharge >= 0 AND DiscountAmount >= 0 AND DepositAmount >= 0);
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_Invoice_AmountDue')
+    ALTER TABLE dbo.Invoice ADD CONSTRAINT CK_Invoice_AmountDue CHECK (AmountDue >= 0);
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_Invoice_Status')
+    ALTER TABLE dbo.Invoice ADD CONSTRAINT CK_Invoice_Status CHECK (StatusCode IN ('DRAFT','PAID'));
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_Report_Payment_Positive')
+    ALTER TABLE dbo.Payment DROP CONSTRAINT CK_Report_Payment_Positive;
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_Payment_Amount')
+    ALTER TABLE dbo.Payment ADD CONSTRAINT CK_Payment_Amount CHECK (
+        (PaymentKind = 'DEPOSIT' AND Amount > 0) OR
+        (PaymentKind = 'SETTLEMENT' AND Amount >= 0)
+    );
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name IN (N'CK_Payment_OneTarget', N'CK_Report_Payment_OneTarget'))
+    ALTER TABLE dbo.Payment ADD CONSTRAINT CK_Payment_OneTarget CHECK (
+        (BookingId IS NOT NULL AND InvoiceId IS NULL AND PaymentKind = 'DEPOSIT') OR
+        (BookingId IS NULL AND InvoiceId IS NOT NULL AND PaymentKind = 'SETTLEMENT')
+    );
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name IN (N'CK_Membership_Points', N'CK_Report_Membership_Points'))
+    ALTER TABLE dbo.Membership ADD CONSTRAINT CK_Membership_Points CHECK (Points >= 0);
 GO
 
-ALTER TABLE dbo.[ServiceUsage] WITH CHECK ADD CONSTRAINT FK_ServiceUsage_StayId FOREIGN KEY ([StayId]) REFERENCES dbo.[Stay]([StayId]);
-GO
-
-ALTER TABLE dbo.[ServiceUsage] WITH CHECK ADD CONSTRAINT FK_ServiceUsage_ServiceId FOREIGN KEY ([ServiceId]) REFERENCES dbo.[HotelService]([ServiceId]);
-GO
-
-ALTER TABLE dbo.[Invoice] WITH CHECK ADD CONSTRAINT FK_Invoice_StayId FOREIGN KEY ([StayId]) REFERENCES dbo.[Stay]([StayId]);
-GO
-
-ALTER TABLE dbo.[InvoiceLine] WITH CHECK ADD CONSTRAINT FK_InvoiceLine_InvoiceId FOREIGN KEY ([InvoiceId]) REFERENCES dbo.[Invoice]([InvoiceId]);
-GO
-
-ALTER TABLE dbo.[InvoiceLine] WITH CHECK ADD CONSTRAINT FK_InvoiceLine_ServiceId FOREIGN KEY ([ServiceId]) REFERENCES dbo.[HotelService]([ServiceId]);
-GO
-
-ALTER TABLE dbo.[Payment] WITH CHECK ADD CONSTRAINT FK_Payment_BookingId FOREIGN KEY ([BookingId]) REFERENCES dbo.[Booking]([BookingId]);
-GO
-
-ALTER TABLE dbo.[Payment] WITH CHECK ADD CONSTRAINT FK_Payment_InvoiceId FOREIGN KEY ([InvoiceId]) REFERENCES dbo.[Invoice]([InvoiceId]);
-GO
-
-ALTER TABLE dbo.[MembershipPointEntry] WITH CHECK ADD CONSTRAINT FK_MembershipPointEntry_InvoiceId FOREIGN KEY ([InvoiceId]) REFERENCES dbo.[Invoice]([InvoiceId]);
-GO
-
-ALTER TABLE dbo.[MembershipPointEntry] WITH CHECK ADD CONSTRAINT FK_MembershipPointEntry_MembershipId FOREIGN KEY ([MembershipId]) REFERENCES dbo.[Membership]([MembershipId]);
-GO
-
-ALTER TABLE dbo.[HousekeepingTask] WITH CHECK ADD CONSTRAINT FK_HousekeepingTask_RoomId FOREIGN KEY ([RoomId]) REFERENCES dbo.[Room]([RoomId]);
-GO
-
-ALTER TABLE dbo.[HousekeepingTask] WITH CHECK ADD CONSTRAINT FK_HousekeepingTask_StayId FOREIGN KEY ([StayId]) REFERENCES dbo.[Stay]([StayId]);
-GO
-
-ALTER TABLE dbo.[HousekeepingTask] WITH CHECK ADD CONSTRAINT FK_HousekeepingTask_AssignedTo FOREIGN KEY ([AssignedTo]) REFERENCES dbo.[Account]([AccountId]);
-GO
-
-ALTER TABLE dbo.[DamageReport] WITH CHECK ADD CONSTRAINT FK_DamageReport_RoomId FOREIGN KEY ([RoomId]) REFERENCES dbo.[Room]([RoomId]);
-GO
-
-ALTER TABLE dbo.[DamageReport] WITH CHECK ADD CONSTRAINT FK_DamageReport_TaskId FOREIGN KEY ([TaskId]) REFERENCES dbo.[HousekeepingTask]([TaskId]);
-GO
-
-ALTER TABLE dbo.[DamageReport] WITH CHECK ADD CONSTRAINT FK_DamageReport_ReportedBy FOREIGN KEY ([ReportedBy]) REFERENCES dbo.[Account]([AccountId]);
-GO
-
-ALTER TABLE dbo.[BackupHistory] WITH CHECK ADD CONSTRAINT FK_BackupHistory_CreatedBy FOREIGN KEY ([CreatedBy]) REFERENCES dbo.[Account]([AccountId]);
-GO
-
-ALTER TABLE dbo.[AuditEvent] WITH CHECK ADD CONSTRAINT FK_AuditEvent_ActorId FOREIGN KEY ([ActorId]) REFERENCES dbo.[Account]([AccountId]);
-GO
-
--- Minimal additional structural constraints; no trigger/stored procedure.
--- Multiple walk-in customers may have no account; only non-NULL AccountId values must be unique.
-CREATE UNIQUE INDEX UX_Report_Customer_Account_NotNull ON dbo.Customer(AccountId) WHERE AccountId IS NOT NULL;
-ALTER TABLE dbo.Membership ADD CONSTRAINT UQ_Report_Membership_Customer UNIQUE (CustomerId);
-ALTER TABLE dbo.Stay ADD CONSTRAINT UQ_Report_Stay_Booking UNIQUE (BookingId);
-ALTER TABLE dbo.Invoice ADD CONSTRAINT UQ_Report_Invoice_Stay UNIQUE (StayId);
-GO
-ALTER TABLE dbo.Booking ADD CONSTRAINT CK_Report_Booking_Dates CHECK (EndAt > StartAt),
-  CONSTRAINT CK_Report_Booking_Guests CHECK (GuestCount > 0),
-  CONSTRAINT CK_Report_Booking_Amounts CHECK (RoomCharge >= 0 AND DepositAmount >= 0);
-ALTER TABLE dbo.Stay ADD CONSTRAINT CK_Report_Stay_Dates CHECK (CheckOutAt IS NULL OR CheckOutAt >= CheckInAt),
-  CONSTRAINT CK_Report_Stay_Amounts CHECK (RoomCharge >= 0 AND Surcharge >= 0);
-ALTER TABLE dbo.StayRoomHistory ADD CONSTRAINT CK_Report_History_Dates CHECK (ToAt IS NULL OR ToAt > FromAt),
-  CONSTRAINT CK_Report_History_Extra CHECK (ExtraCharge >= 0);
-ALTER TABLE dbo.RoomType ADD CONSTRAINT CK_Report_RoomType_Values CHECK (Capacity > 0 AND Beds > 0 AND HourlyPrice > 0 AND NightlyPrice > 0 AND DailyPrice > 0);
-ALTER TABLE dbo.HotelService ADD CONSTRAINT CK_Report_Service_Price CHECK (Price >= 0);
-ALTER TABLE dbo.HolidayRate ADD CONSTRAINT CK_Report_HolidayRate CHECK (EndDate >= StartDate AND IncreasePercent >= 0);
-ALTER TABLE dbo.ServiceUsage ADD CONSTRAINT CK_Report_Usage_Values CHECK (Quantity > 0 AND UnitPrice >= 0);
-ALTER TABLE dbo.InvoiceLine ADD CONSTRAINT CK_Report_InvoiceLine_Values CHECK (Quantity > 0 AND UnitPrice >= 0);
-ALTER TABLE dbo.Invoice ADD CONSTRAINT CK_Report_Invoice_Amounts CHECK (RoomCharge >= 0 AND ServiceCharge >= 0 AND Surcharge >= 0 AND DiscountAmount >= 0 AND DepositAmount >= 0);
-ALTER TABLE dbo.Payment ADD CONSTRAINT CK_Report_Payment_Positive CHECK (Amount > 0),
-  CONSTRAINT CK_Report_Payment_OneTarget CHECK ((BookingId IS NOT NULL AND InvoiceId IS NULL AND PaymentKind = 'DEPOSIT') OR (BookingId IS NULL AND InvoiceId IS NOT NULL AND PaymentKind = 'SETTLEMENT'));
-ALTER TABLE dbo.Membership ADD CONSTRAINT CK_Report_Membership_Points CHECK (Points >= 0);
-GO
--- A stay can have at most one open room assignment. Room occupancy overlaps require MVC transaction checks.
-CREATE UNIQUE INDEX UX_Report_StayHistory_OneOpen ON dbo.StayRoomHistory(StayId) WHERE ToAt IS NULL;
-GO
--- Verify actual physical schema (not data). Expected: 23 tables, 28 foreign keys.
-SELECT COUNT(*) AS TableCount FROM sys.tables WHERE is_ms_shipped = 0;
-SELECT COUNT(*) AS ForeignKeyCount FROM sys.foreign_keys;
-GO
-PRINT N'Report schema created. Report schema created; loading realistic 3-room-type seed next.';
+PRINT N'Canonical schema objects are present; handling the development seed next.';
 GO
 
 
 
 -- ===================== REALISTIC SEED: DON / DOI / VIP =====================
-USE [HotelManagerOOAD];
-GO
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 GO
-BEGIN TRY
- BEGIN TRANSACTION;
- IF EXISTS (SELECT 1 FROM dbo.SeedHistory WHERE SeedName='realistic_3roomtypes_v2') THROW 51062,N'Da nap bo du lieu mau.',1;
- IF EXISTS (SELECT 1 FROM dbo.Account) THROW 51063,N'Database da co du lieu. Chi chay tren database moi.',1;
-INSERT dbo.[SchemaVersion] ([VersionNo]) VALUES
-  (2);
+IF EXISTS (SELECT 1 FROM dbo.SeedHistory WHERE SeedName = 'realistic_3roomtypes_v2')
+    PRINT N'Realistic development seed already present; seed skipped.';
+ELSE IF EXISTS (SELECT 1 FROM dbo.Account)
+    PRINT N'Existing application data detected; development seed skipped without changing data.';
+ELSE
+BEGIN
+ BEGIN TRY
+  BEGIN TRANSACTION;
+-- quanly@khachsan.test (MANAGER) has full access; admin@khachsan.test (ADMIN) handles operations.
 INSERT dbo.[Account] ([AccountId], [PasswordHash], [FullName], [Email], [Phone], [RoleCode], [IsActive]) VALUES
   (N'TK001', N'mbsOl9q8woBGUcMQ4z2SRQ==:2TA1ikDYozERAiCV/THHV9V8JLEFm44UtgbvvAp+Xdw=', N'Nguyễn Thành Long', N'admin@khachsan.test', N'0903000001', N'ADMIN', 1),
   (N'TK002', N'mbsOl9q8woBGUcMQ4z2SRQ==:2TA1ikDYozERAiCV/THHV9V8JLEFm44UtgbvvAp+Xdw=', N'Trần Hải Yến', N'quanly@khachsan.test', N'0903000002', N'MANAGER', 1),
@@ -627,7 +891,7 @@ INSERT dbo.[Membership] ([MembershipId], [CustomerId], [Points], [IsActive], [Is
   (N'TV019', N'KH019', 290, 1, N'2026-07-01T09:00:00'),
   (N'TV020', N'KH020', 300, 1, N'2026-07-01T09:00:00');
 INSERT dbo.[Booking] ([BookingId], [CustomerId], [RoomId], [StartAt], [EndAt], [GuestCount], [StatusCode], [ChannelCode], [RoomCharge], [DepositAmount], [HoldUntil]) VALUES
-  (N'DP0001', N'KH001', N'P101', N'2026-09-01T14:00:00', N'2026-09-03T12:00:00', 1, N'COMPLETED', N'ONLINE', 960000, 240000, N'2026-09-00T18:00:00'),
+  (N'DP0001', N'KH001', N'P101', N'2026-09-01T14:00:00', N'2026-09-03T12:00:00', 1, N'COMPLETED', N'ONLINE', 960000, 240000, N'2026-08-31T18:00:00'),
   (N'DP0002', N'KH002', N'P102', N'2026-09-02T14:00:00', N'2026-09-04T12:00:00', 1, N'COMPLETED', N'COUNTER', 960000, 240000, N'2026-09-01T18:00:00'),
   (N'DP0003', N'KH003', N'P103', N'2026-09-03T14:00:00', N'2026-09-05T12:00:00', 1, N'COMPLETED', N'ONLINE', 960000, 240000, N'2026-09-02T18:00:00'),
   (N'DP0004', N'KH004', N'P104', N'2026-09-04T14:00:00', N'2026-09-06T12:00:00', 1, N'COMPLETED', N'COUNTER', 960000, 240000, N'2026-09-03T18:00:00'),
@@ -759,27 +1023,27 @@ INSERT dbo.[ServiceUsage] ([UsageId], [StayId], [ServiceId], [Quantity], [UnitPr
   (N'SD0058', N'PT0020', N'DV020', 1, 210000, N'2026-09-21T15:00:00'),
   (N'SD0059', N'PT0020', N'DV001', 1, 20000, N'2026-09-21T16:00:00'),
   (N'SD0060', N'PT0020', N'DV002', 1, 30000, N'2026-09-21T17:00:00');
-INSERT dbo.[Invoice] ([InvoiceId], [StayId], [IssuedAt], [RoomCharge], [ServiceCharge], [Surcharge], [DiscountAmount], [DepositAmount], [StatusCode], [PaymentMethod]) VALUES
-  (N'HD0001', N'PT0001', N'2026-09-03T11:00:00', 960000, 90000, 0, 0, 240000, N'PAID', N'CASH'),
-  (N'HD0002', N'PT0002', N'2026-09-04T11:00:00', 960000, 120000, 0, 0, 240000, N'PAID', N'CASH'),
-  (N'HD0003', N'PT0003', N'2026-09-05T11:00:00', 960000, 150000, 0, 0, 240000, N'PAID', N'CASH'),
-  (N'HD0004', N'PT0004', N'2026-09-06T11:00:00', 960000, 180000, 0, 0, 240000, N'PAID', N'CASH'),
-  (N'HD0005', N'PT0005', N'2026-09-07T11:00:00', 960000, 210000, 0, 0, 240000, N'PAID', N'CASH'),
-  (N'HD0006', N'PT0006', N'2026-09-08T11:00:00', 960000, 240000, 0, 0, 240000, N'PAID', N'CASH'),
-  (N'HD0007', N'PT0007', N'2026-09-09T11:00:00', 960000, 270000, 0, 0, 240000, N'PAID', N'CASH'),
-  (N'HD0008', N'PT0008', N'2026-09-10T11:00:00', 960000, 300000, 0, 0, 240000, N'PAID', N'CASH'),
-  (N'HD0009', N'PT0009', N'2026-09-11T11:00:00', 1440000, 330000, 0, 0, 360000, N'PAID', N'CASH'),
-  (N'HD0010', N'PT0010', N'2026-09-12T11:00:00', 1440000, 360000, 0, 0, 360000, N'PAID', N'CASH'),
-  (N'HD0011', N'PT0011', N'2026-09-13T11:00:00', 1440000, 390000, 0, 0, 360000, N'PAID', N'CASH'),
-  (N'HD0012', N'PT0012', N'2026-09-14T11:00:00', 1440000, 420000, 0, 0, 360000, N'PAID', N'CASH'),
-  (N'HD0013', N'PT0013', N'2026-09-15T11:00:00', 1440000, 450000, 0, 0, 360000, N'PAID', N'CASH'),
-  (N'HD0014', N'PT0014', N'2026-09-16T11:00:00', 1440000, 480000, 0, 0, 360000, N'PAID', N'CASH'),
-  (N'HD0015', N'PT0015', N'2026-09-17T11:00:00', 1440000, 510000, 0, 0, 360000, N'PAID', N'CASH'),
-  (N'HD0016', N'PT0016', N'2026-09-18T11:00:00', 3100000, 540000, 0, 0, 775000, N'PAID', N'CASH'),
-  (N'HD0017', N'PT0017', N'2026-09-19T11:00:00', 3100000, 570000, 0, 0, 775000, N'PAID', N'CASH'),
-  (N'HD0018', N'PT0018', N'2026-09-20T11:00:00', 3100000, 600000, 0, 0, 775000, N'PAID', N'CASH'),
-  (N'HD0019', N'PT0019', N'2026-09-21T11:00:00', 3100000, 430000, 0, 0, 775000, N'PAID', N'CASH'),
-  (N'HD0020', N'PT0020', N'2026-09-22T11:00:00', 3100000, 260000, 0, 0, 775000, N'PAID', N'CASH');
+INSERT dbo.[Invoice] ([InvoiceId], [StayId], [CustomerId], [IssuedAt], [RoomCharge], [ServiceCharge], [Surcharge], [DiscountAmount], [DepositAmount], [StatusCode], [PaymentMethod]) VALUES
+  (N'HD0001', N'PT0001', N'KH001', N'2026-09-03T11:00:00', 960000, 90000, 0, 0, 240000, N'PAID', N'CASH'),
+  (N'HD0002', N'PT0002', N'KH002', N'2026-09-04T11:00:00', 960000, 120000, 0, 0, 240000, N'PAID', N'CASH'),
+  (N'HD0003', N'PT0003', N'KH003', N'2026-09-05T11:00:00', 960000, 150000, 0, 0, 240000, N'PAID', N'CASH'),
+  (N'HD0004', N'PT0004', N'KH004', N'2026-09-06T11:00:00', 960000, 180000, 0, 0, 240000, N'PAID', N'CASH'),
+  (N'HD0005', N'PT0005', N'KH005', N'2026-09-07T11:00:00', 960000, 210000, 0, 0, 240000, N'PAID', N'CASH'),
+  (N'HD0006', N'PT0006', N'KH006', N'2026-09-08T11:00:00', 960000, 240000, 0, 0, 240000, N'PAID', N'CASH'),
+  (N'HD0007', N'PT0007', N'KH007', N'2026-09-09T11:00:00', 960000, 270000, 0, 0, 240000, N'PAID', N'CASH'),
+  (N'HD0008', N'PT0008', N'KH008', N'2026-09-10T11:00:00', 960000, 300000, 0, 0, 240000, N'PAID', N'CASH'),
+  (N'HD0009', N'PT0009', N'KH009', N'2026-09-11T11:00:00', 1440000, 330000, 0, 0, 360000, N'PAID', N'CASH'),
+  (N'HD0010', N'PT0010', N'KH010', N'2026-09-12T11:00:00', 1440000, 360000, 0, 0, 360000, N'PAID', N'CASH'),
+  (N'HD0011', N'PT0011', N'KH011', N'2026-09-13T11:00:00', 1440000, 390000, 0, 0, 360000, N'PAID', N'CASH'),
+  (N'HD0012', N'PT0012', N'KH012', N'2026-09-14T11:00:00', 1440000, 420000, 0, 0, 360000, N'PAID', N'CASH'),
+  (N'HD0013', N'PT0013', N'KH013', N'2026-09-15T11:00:00', 1440000, 450000, 0, 0, 360000, N'PAID', N'CASH'),
+  (N'HD0014', N'PT0014', N'KH014', N'2026-09-16T11:00:00', 1440000, 480000, 0, 0, 360000, N'PAID', N'CASH'),
+  (N'HD0015', N'PT0015', N'KH015', N'2026-09-17T11:00:00', 1440000, 510000, 0, 0, 360000, N'PAID', N'CASH'),
+  (N'HD0016', N'PT0016', N'KH016', N'2026-09-18T11:00:00', 3100000, 540000, 0, 0, 775000, N'PAID', N'CASH'),
+  (N'HD0017', N'PT0017', N'KH017', N'2026-09-19T11:00:00', 3100000, 570000, 0, 0, 775000, N'PAID', N'CASH'),
+  (N'HD0018', N'PT0018', N'KH018', N'2026-09-20T11:00:00', 3100000, 600000, 0, 0, 775000, N'PAID', N'CASH'),
+  (N'HD0019', N'PT0019', N'KH019', N'2026-09-21T11:00:00', 3100000, 430000, 0, 0, 775000, N'PAID', N'CASH'),
+  (N'HD0020', N'PT0020', N'KH020', N'2026-09-22T11:00:00', 3100000, 260000, 0, 0, 775000, N'PAID', N'CASH');
 INSERT dbo.[InvoiceLine] ([InvoiceId], [LineType], [ServiceId], [Description], [Quantity], [UnitPrice]) VALUES
   (N'HD0001', N'SERVICE', N'DV001', N'Nước suối', 1, 20000),
   (N'HD0001', N'SERVICE', N'DV002', N'Nước ngọt', 1, 30000),
@@ -862,7 +1126,7 @@ INSERT dbo.[InvoiceLine] ([InvoiceId], [LineType], [ServiceId], [Description], [
   (N'HD0020', N'SERVICE', N'DV002', N'Nước ngọt', 1, 30000),
   (N'HD0020', N'ROOM', NULL, N'Tiền phòng 2 đêm', 1, 3100000);
 INSERT dbo.[Payment] ([PaymentId], [BookingId], [InvoiceId], [PaymentKind], [Amount], [MethodCode], [PaidAt]) VALUES
-  (N'TT0001A', N'DP0001', NULL, N'DEPOSIT', 240000, N'TRANSFER', N'2026-09-00T15:00:00'),
+  (N'TT0001A', N'DP0001', NULL, N'DEPOSIT', 240000, N'TRANSFER', N'2026-08-31T15:00:00'),
   (N'TT0001B', NULL, N'HD0001', N'SETTLEMENT', 810000, N'CASH', N'2026-09-03T12:00:00'),
   (N'TT0002A', N'DP0002', NULL, N'DEPOSIT', 240000, N'TRANSFER', N'2026-09-01T15:00:00'),
   (N'TT0002B', NULL, N'HD0002', N'SETTLEMENT', 840000, N'CASH', N'2026-09-04T12:00:00'),
@@ -991,17 +1255,702 @@ INSERT dbo.[AuditEvent] ([ActorId], [ActionName], [ObjectType], [ObjectId], [Det
   (N'TK003', N'Lập hóa đơn', N'Invoice', N'HD0018', N'Hoàn tất thanh toán HD0018'),
   (N'TK004', N'Lập hóa đơn', N'Invoice', N'HD0019', N'Hoàn tất thanh toán HD0019'),
   (N'TK005', N'Lập hóa đơn', N'Invoice', N'HD0020', N'Hoàn tất thanh toán HD0020');
+
+-- Populate the v3 attribution/link columns for the historical seed rows.
+UPDATE b
+SET CreatedBy = CASE WHEN b.ChannelCode = 'ONLINE' THEN COALESCE(c.AccountId, 'TK003') ELSE 'TK003' END
+FROM dbo.Booking AS b
+JOIN dbo.Customer AS c ON c.CustomerId = b.CustomerId;
+UPDATE dbo.Stay SET CreatedBy = 'TK003' WHERE CreatedBy IS NULL;
+UPDATE i
+SET CreatedBy = a.ActorId
+FROM dbo.Invoice AS i
+JOIN dbo.AuditEvent AS a ON a.ObjectType = 'Invoice' AND a.ObjectId = i.InvoiceId
+WHERE i.CreatedBy IS NULL;
+UPDATE p
+SET CreatedBy = COALESCE(i.CreatedBy, b.CreatedBy, 'TK003')
+FROM dbo.Payment AS p
+LEFT JOIN dbo.Invoice AS i ON i.InvoiceId = p.InvoiceId
+LEFT JOIN dbo.Booking AS b ON b.BookingId = p.BookingId
+WHERE p.CreatedBy IS NULL;
+UPDATE su
+SET InvoiceId = i.InvoiceId,
+    RecordedBy = COALESCE(i.CreatedBy, 'TK003')
+FROM dbo.ServiceUsage AS su
+JOIN dbo.Invoice AS i ON i.StayId = su.StayId
+WHERE su.IsVoided = 0;
+
+-- Keep the development fixture on the same authoritative nightly/type-service
+-- pricing rules as both runtime adapters.
+UPDATE b
+SET RoomCharge = rt.NightlyPrice * DATEDIFF(day, CONVERT(date, b.StartAt), CONVERT(date, b.EndAt)),
+    DepositAmount = ROUND(rt.NightlyPrice * DATEDIFF(day, CONVERT(date, b.StartAt), CONVERT(date, b.EndAt)) * 0.25, 0)
+FROM dbo.Booking AS b
+JOIN dbo.Room AS r ON r.RoomId = b.RoomId
+JOIN dbo.RoomType AS rt ON rt.RoomTypeId = r.RoomTypeId;
+
+UPDATE s
+SET RoomCharge = b.RoomCharge
+FROM dbo.Stay AS s
+JOIN dbo.Booking AS b ON b.BookingId = s.BookingId;
+
+UPDATE il
+SET UnitPrice = 0
+FROM dbo.InvoiceLine AS il
+JOIN dbo.Invoice AS i ON i.InvoiceId = il.InvoiceId
+JOIN dbo.Stay AS s ON s.StayId = i.StayId
+JOIN dbo.Booking AS b ON b.BookingId = s.BookingId
+JOIN dbo.Room AS r ON r.RoomId = b.RoomId
+JOIN dbo.RoomTypeService AS rts
+  ON rts.RoomTypeId = r.RoomTypeId
+ AND rts.ServiceId = il.ServiceId
+ AND rts.IsIncluded = 1
+WHERE il.LineType = 'SERVICE';
+
+UPDATE su
+SET UnitPrice = 0
+FROM dbo.ServiceUsage AS su
+JOIN dbo.Stay AS s ON s.StayId = su.StayId
+JOIN dbo.Booking AS b ON b.BookingId = s.BookingId
+JOIN dbo.Room AS r ON r.RoomId = b.RoomId
+JOIN dbo.RoomTypeService AS rts
+  ON rts.RoomTypeId = r.RoomTypeId
+ AND rts.ServiceId = su.ServiceId
+ AND rts.IsIncluded = 1;
+
+UPDATE i
+SET RoomCharge = s.RoomCharge,
+    DepositAmount = b.DepositAmount,
+    ServiceCharge = COALESCE(lines.ServiceCharge, 0)
+FROM dbo.Invoice AS i
+JOIN dbo.Stay AS s ON s.StayId = i.StayId
+JOIN dbo.Booking AS b ON b.BookingId = s.BookingId
+OUTER APPLY (
+    SELECT SUM(il.LineAmount) AS ServiceCharge
+    FROM dbo.InvoiceLine AS il
+    WHERE il.InvoiceId = i.InvoiceId AND il.LineType = 'SERVICE'
+) AS lines;
+
+UPDATE il
+SET UnitPrice = i.RoomCharge
+FROM dbo.InvoiceLine AS il
+JOIN dbo.Invoice AS i ON i.InvoiceId = il.InvoiceId
+WHERE il.LineType = 'ROOM';
+
+UPDATE p
+SET Amount = CASE
+    WHEN p.PaymentKind = 'DEPOSIT' THEN b.DepositAmount
+    ELSE i.AmountDue
+END,
+    ExternalReference = CASE
+        WHEN p.MethodCode IN ('TRANSFER', 'CARD')
+          THEN COALESCE(NULLIF(p.ExternalReference, ''), CONCAT('SEED-', p.PaymentId))
+        ELSE p.ExternalReference
+    END
+FROM dbo.Payment AS p
+LEFT JOIN dbo.Booking AS b ON b.BookingId = p.BookingId
+LEFT JOIN dbo.Invoice AS i ON i.InvoiceId = p.InvoiceId;
+
+UPDATE i
+SET CustomerNameSnapshot = COALESCE(i.CustomerNameSnapshot, c.FullName),
+    CustomerIdentitySnapshot = COALESCE(i.CustomerIdentitySnapshot, c.IdentityNo),
+    CustomerPhoneSnapshot = COALESCE(i.CustomerPhoneSnapshot, c.Phone),
+    RoomNameSnapshot = COALESCE(i.RoomNameSnapshot, roomInfo.RoomName),
+    HotelNameSnapshot = COALESCE(i.HotelNameSnapshot, hs.HotelName),
+    HotelAddressSnapshot = COALESCE(i.HotelAddressSnapshot, hs.Address),
+    HotelHotlineSnapshot = COALESCE(i.HotelHotlineSnapshot, hs.Hotline),
+    PaymentReferenceSnapshot = COALESCE(i.PaymentReferenceSnapshot, paymentInfo.ExternalReference)
+FROM dbo.Invoice AS i
+JOIN dbo.Customer AS c ON c.CustomerId = i.CustomerId
+CROSS JOIN dbo.HotelSetting AS hs
+OUTER APPLY (
+    SELECT TOP (1) r.Name AS RoomName
+    FROM dbo.StayRoomHistory AS srh
+    JOIN dbo.Room AS r ON r.RoomId = srh.RoomId
+    WHERE srh.StayId = i.StayId
+    ORDER BY srh.FromAt DESC
+) AS roomInfo
+OUTER APPLY (
+    SELECT TOP (1) p.ExternalReference
+    FROM dbo.Payment AS p
+    WHERE p.InvoiceId = i.InvoiceId
+    ORDER BY p.PaidAt DESC
+) AS paymentInfo;
+
+UPDATE pe
+SET Points = CONVERT(bigint, FLOOR((i.RoomCharge + i.ServiceCharge + i.Surcharge - i.DiscountAmount) / 10000))
+FROM dbo.MembershipPointEntry AS pe
+JOIN dbo.Invoice AS i ON i.InvoiceId = pe.InvoiceId;
+
+UPDATE m
+SET Points = totals.Points
+FROM dbo.Membership AS m
+CROSS APPLY (
+    SELECT COALESCE(SUM(pe.Points), 0) AS Points
+    FROM dbo.MembershipPointEntry AS pe
+    WHERE pe.MembershipId = m.MembershipId
+) AS totals;
+
 INSERT dbo.[SeedHistory] ([SeedName]) VALUES
   (N'realistic_3roomtypes_v2');
-COMMIT TRANSACTION;
+  COMMIT TRANSACTION;
+ END TRY
+ BEGIN CATCH
+  IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+  THROW;
+ END CATCH;
+END;
+GO
+
+-- Version 4 reconciles only the deterministic development fixture. Existing
+-- user-created bookings/invoices are historical snapshots and are untouched.
+IF EXISTS (SELECT 1 FROM dbo.SeedHistory WHERE SeedName = N'realistic_3roomtypes_v2')
+   AND NOT EXISTS (SELECT 1 FROM dbo.SeedHistory WHERE SeedName = N'pricing_snapshot_v4')
+BEGIN
+    IF OBJECT_ID(N'dbo.trg_Invoice_Finalize', N'TR') IS NOT NULL DISABLE TRIGGER dbo.trg_Invoice_Finalize ON dbo.Invoice;
+    IF OBJECT_ID(N'dbo.trg_InvoiceLine_ImmutablePaid', N'TR') IS NOT NULL DISABLE TRIGGER dbo.trg_InvoiceLine_ImmutablePaid ON dbo.InvoiceLine;
+    IF OBJECT_ID(N'dbo.trg_Payment_ImmutablePaid', N'TR') IS NOT NULL DISABLE TRIGGER dbo.trg_Payment_ImmutablePaid ON dbo.Payment;
+    IF OBJECT_ID(N'dbo.trg_ServiceUsage_ProtectBilled', N'TR') IS NOT NULL DISABLE TRIGGER dbo.trg_ServiceUsage_ProtectBilled ON dbo.ServiceUsage;
+    IF OBJECT_ID(N'dbo.trg_PointEntry_Protect', N'TR') IS NOT NULL DISABLE TRIGGER dbo.trg_PointEntry_Protect ON dbo.MembershipPointEntry;
+    IF OBJECT_ID(N'dbo.trg_Membership_ProtectPoints', N'TR') IS NOT NULL DISABLE TRIGGER dbo.trg_Membership_ProtectPoints ON dbo.Membership;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        DECLARE @SeedBookings TABLE (BookingId varchar(20) PRIMARY KEY);
+        INSERT @SeedBookings (BookingId)
+        SELECT BookingId
+        FROM dbo.Booking
+        WHERE LEN(BookingId) = 6
+          AND LEFT(BookingId, 2) = 'DP'
+          AND TRY_CONVERT(int, RIGHT(BookingId, 4)) BETWEEN 1 AND 25;
+
+        UPDATE b
+        SET RoomCharge = rt.NightlyPrice * DATEDIFF(day, CONVERT(date, b.StartAt), CONVERT(date, b.EndAt)),
+            DepositAmount = ROUND(rt.NightlyPrice * DATEDIFF(day, CONVERT(date, b.StartAt), CONVERT(date, b.EndAt)) * 0.25, 0)
+        FROM dbo.Booking AS b
+        JOIN @SeedBookings AS seed ON seed.BookingId = b.BookingId
+        JOIN dbo.Room AS r ON r.RoomId = b.RoomId
+        JOIN dbo.RoomType AS rt ON rt.RoomTypeId = r.RoomTypeId;
+
+        UPDATE s
+        SET RoomCharge = b.RoomCharge
+        FROM dbo.Stay AS s
+        JOIN dbo.Booking AS b ON b.BookingId = s.BookingId
+        JOIN @SeedBookings AS seed ON seed.BookingId = b.BookingId;
+
+        UPDATE il
+        SET UnitPrice = 0
+        FROM dbo.InvoiceLine AS il
+        JOIN dbo.Invoice AS i ON i.InvoiceId = il.InvoiceId
+        JOIN dbo.Stay AS s ON s.StayId = i.StayId
+        JOIN dbo.Booking AS b ON b.BookingId = s.BookingId
+        JOIN @SeedBookings AS seed ON seed.BookingId = b.BookingId
+        JOIN dbo.Room AS r ON r.RoomId = b.RoomId
+        JOIN dbo.RoomTypeService AS rts
+          ON rts.RoomTypeId = r.RoomTypeId
+         AND rts.ServiceId = il.ServiceId
+         AND rts.IsIncluded = 1
+        WHERE il.LineType = 'SERVICE';
+
+        UPDATE su
+        SET UnitPrice = 0
+        FROM dbo.ServiceUsage AS su
+        JOIN dbo.Stay AS s ON s.StayId = su.StayId
+        JOIN dbo.Booking AS b ON b.BookingId = s.BookingId
+        JOIN @SeedBookings AS seed ON seed.BookingId = b.BookingId
+        JOIN dbo.Room AS r ON r.RoomId = b.RoomId
+        JOIN dbo.RoomTypeService AS rts
+          ON rts.RoomTypeId = r.RoomTypeId
+         AND rts.ServiceId = su.ServiceId
+         AND rts.IsIncluded = 1;
+
+        UPDATE i
+        SET RoomCharge = s.RoomCharge,
+            DepositAmount = b.DepositAmount,
+            ServiceCharge = COALESCE(lines.ServiceCharge, 0)
+        FROM dbo.Invoice AS i
+        JOIN dbo.Stay AS s ON s.StayId = i.StayId
+        JOIN dbo.Booking AS b ON b.BookingId = s.BookingId
+        JOIN @SeedBookings AS seed ON seed.BookingId = b.BookingId
+        OUTER APPLY (
+            SELECT SUM(il.LineAmount) AS ServiceCharge
+            FROM dbo.InvoiceLine AS il
+            WHERE il.InvoiceId = i.InvoiceId AND il.LineType = 'SERVICE'
+        ) AS lines;
+
+        UPDATE il
+        SET UnitPrice = i.RoomCharge
+        FROM dbo.InvoiceLine AS il
+        JOIN dbo.Invoice AS i ON i.InvoiceId = il.InvoiceId
+        JOIN dbo.Stay AS s ON s.StayId = i.StayId
+        JOIN @SeedBookings AS seed ON seed.BookingId = s.BookingId
+        WHERE il.LineType = 'ROOM';
+
+        UPDATE p
+        SET Amount = CASE WHEN p.PaymentKind = 'DEPOSIT' THEN b.DepositAmount ELSE i.AmountDue END,
+            ExternalReference = CASE
+                WHEN p.MethodCode IN ('TRANSFER', 'CARD')
+                  THEN COALESCE(NULLIF(p.ExternalReference, ''), CONCAT('LEGACY-', p.PaymentId))
+                ELSE p.ExternalReference
+            END
+        FROM dbo.Payment AS p
+        LEFT JOIN dbo.Booking AS b ON b.BookingId = p.BookingId
+        LEFT JOIN dbo.Invoice AS i ON i.InvoiceId = p.InvoiceId
+        LEFT JOIN dbo.Stay AS s ON s.StayId = i.StayId
+        WHERE b.BookingId IN (SELECT BookingId FROM @SeedBookings)
+           OR s.BookingId IN (SELECT BookingId FROM @SeedBookings);
+
+        UPDATE pe
+        SET Points = CONVERT(bigint, FLOOR((i.RoomCharge + i.ServiceCharge + i.Surcharge - i.DiscountAmount) / 10000))
+        FROM dbo.MembershipPointEntry AS pe
+        JOIN dbo.Invoice AS i ON i.InvoiceId = pe.InvoiceId
+        JOIN dbo.Stay AS s ON s.StayId = i.StayId
+        JOIN @SeedBookings AS seed ON seed.BookingId = s.BookingId;
+
+        UPDATE m
+        SET Points = totals.Points
+        FROM dbo.Membership AS m
+        CROSS APPLY (
+            SELECT COALESCE(SUM(pe.Points), 0) AS Points
+            FROM dbo.MembershipPointEntry AS pe
+            WHERE pe.MembershipId = m.MembershipId
+        ) AS totals;
+        INSERT dbo.SeedHistory (SeedName) VALUES (N'pricing_snapshot_v4');
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        IF OBJECT_ID(N'dbo.trg_Invoice_Finalize', N'TR') IS NOT NULL ENABLE TRIGGER dbo.trg_Invoice_Finalize ON dbo.Invoice;
+        IF OBJECT_ID(N'dbo.trg_InvoiceLine_ImmutablePaid', N'TR') IS NOT NULL ENABLE TRIGGER dbo.trg_InvoiceLine_ImmutablePaid ON dbo.InvoiceLine;
+        IF OBJECT_ID(N'dbo.trg_Payment_ImmutablePaid', N'TR') IS NOT NULL ENABLE TRIGGER dbo.trg_Payment_ImmutablePaid ON dbo.Payment;
+        IF OBJECT_ID(N'dbo.trg_ServiceUsage_ProtectBilled', N'TR') IS NOT NULL ENABLE TRIGGER dbo.trg_ServiceUsage_ProtectBilled ON dbo.ServiceUsage;
+        IF OBJECT_ID(N'dbo.trg_PointEntry_Protect', N'TR') IS NOT NULL ENABLE TRIGGER dbo.trg_PointEntry_Protect ON dbo.MembershipPointEntry;
+        IF OBJECT_ID(N'dbo.trg_Membership_ProtectPoints', N'TR') IS NOT NULL ENABLE TRIGGER dbo.trg_Membership_ProtectPoints ON dbo.Membership;
+        THROW;
+    END CATCH;
+
+    IF OBJECT_ID(N'dbo.trg_Invoice_Finalize', N'TR') IS NOT NULL ENABLE TRIGGER dbo.trg_Invoice_Finalize ON dbo.Invoice;
+    IF OBJECT_ID(N'dbo.trg_InvoiceLine_ImmutablePaid', N'TR') IS NOT NULL ENABLE TRIGGER dbo.trg_InvoiceLine_ImmutablePaid ON dbo.InvoiceLine;
+    IF OBJECT_ID(N'dbo.trg_Payment_ImmutablePaid', N'TR') IS NOT NULL ENABLE TRIGGER dbo.trg_Payment_ImmutablePaid ON dbo.Payment;
+    IF OBJECT_ID(N'dbo.trg_ServiceUsage_ProtectBilled', N'TR') IS NOT NULL ENABLE TRIGGER dbo.trg_ServiceUsage_ProtectBilled ON dbo.ServiceUsage;
+    IF OBJECT_ID(N'dbo.trg_PointEntry_Protect', N'TR') IS NOT NULL ENABLE TRIGGER dbo.trg_PointEntry_Protect ON dbo.MembershipPointEntry;
+    IF OBJECT_ID(N'dbo.trg_Membership_ProtectPoints', N'TR') IS NOT NULL ENABLE TRIGGER dbo.trg_Membership_ProtectPoints ON dbo.Membership;
+END;
+GO
+
+IF EXISTS (
+    SELECT 1 FROM dbo.Payment
+    WHERE MethodCode IN ('TRANSFER', 'CARD')
+      AND NULLIF(LTRIM(RTRIM(ExternalReference)), '') IS NULL
+)
+BEGIN
+    IF OBJECT_ID(N'dbo.trg_Payment_ImmutablePaid', N'TR') IS NOT NULL DISABLE TRIGGER dbo.trg_Payment_ImmutablePaid ON dbo.Payment;
+    UPDATE dbo.Payment
+    SET ExternalReference = CONCAT('LEGACY-', PaymentId)
+    WHERE MethodCode IN ('TRANSFER', 'CARD')
+      AND NULLIF(LTRIM(RTRIM(ExternalReference)), '') IS NULL;
+    IF OBJECT_ID(N'dbo.trg_Payment_ImmutablePaid', N'TR') IS NOT NULL ENABLE TRIGGER dbo.trg_Payment_ImmutablePaid ON dbo.Payment;
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_Payment_Reference')
+    ALTER TABLE dbo.Payment ADD CONSTRAINT CK_Payment_Reference CHECK (
+        MethodCode = 'CASH' OR NULLIF(LTRIM(RTRIM(ExternalReference)), '') IS NOT NULL
+    );
+GO
+
+-- Stay has no competing RoomId column. This projection reads the single open
+-- history row established by UX_StayHistory_OneOpen/OneOpenRoom.
+CREATE OR ALTER VIEW dbo.v_StayCurrentRoom
+AS
+SELECT s.StayId,
+       s.BookingId,
+       h.RoomId AS CurrentRoomId,
+       h.FromAt AS CurrentRoomFromAt
+FROM dbo.Stay AS s
+LEFT JOIN dbo.StayRoomHistory AS h
+  ON h.StayId = s.StayId AND h.ToAt IS NULL;
+GO
+
+-- A paid transition is the single SQL finalization seam. The trigger executes
+-- in the caller's transaction, links unvoided usage, and awards one ledger row.
+CREATE OR ALTER TRIGGER dbo.trg_Invoice_Finalize
+ON dbo.Invoice
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1
+        FROM deleted AS d
+        LEFT JOIN inserted AS i ON i.InvoiceId = d.InvoiceId
+        WHERE d.StatusCode = 'PAID'
+          AND (i.InvoiceId IS NULL
+               OR i.StatusCode <> 'PAID'
+               OR i.StayId <> d.StayId
+               OR i.CustomerId <> d.CustomerId
+               OR i.IssuedAt <> d.IssuedAt
+               OR i.RoomCharge <> d.RoomCharge
+               OR i.ServiceCharge <> d.ServiceCharge
+               OR i.Surcharge <> d.Surcharge
+               OR i.DiscountAmount <> d.DiscountAmount
+               OR i.DepositAmount <> d.DepositAmount
+               OR i.PaymentMethod <> d.PaymentMethod
+               OR ISNULL(i.CustomerNameSnapshot, '') <> ISNULL(d.CustomerNameSnapshot, '')
+               OR ISNULL(i.CustomerIdentitySnapshot, '') <> ISNULL(d.CustomerIdentitySnapshot, '')
+               OR ISNULL(i.CustomerPhoneSnapshot, '') <> ISNULL(d.CustomerPhoneSnapshot, '')
+               OR ISNULL(i.RoomNameSnapshot, '') <> ISNULL(d.RoomNameSnapshot, '')
+               OR ISNULL(i.HotelNameSnapshot, '') <> ISNULL(d.HotelNameSnapshot, '')
+               OR ISNULL(i.HotelAddressSnapshot, '') <> ISNULL(d.HotelAddressSnapshot, '')
+               OR ISNULL(i.HotelHotlineSnapshot, '') <> ISNULL(d.HotelHotlineSnapshot, '')
+               OR ISNULL(i.PaymentReferenceSnapshot, '') <> ISNULL(d.PaymentReferenceSnapshot, '')
+               OR ISNULL(i.CreatedBy, '') <> ISNULL(d.CreatedBy, ''))
+    )
+        THROW 51020, N'Paid invoices are immutable and cannot be deleted.', 1;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted AS i
+        LEFT JOIN deleted AS d ON d.InvoiceId = i.InvoiceId
+        WHERE i.StatusCode = 'PAID' AND d.InvoiceId IS NULL
+    )
+        THROW 51021, N'Insert invoices as DRAFT, then finalize them with a status update.', 1;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted AS i
+        JOIN deleted AS d ON d.InvoiceId = i.InvoiceId
+        WHERE i.StatusCode <> d.StatusCode
+          AND NOT (d.StatusCode = 'DRAFT' AND i.StatusCode = 'PAID')
+    )
+        THROW 51022, N'Only the DRAFT to PAID invoice transition is allowed.', 1;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted AS i
+        LEFT JOIN dbo.Stay AS s ON s.StayId = i.StayId
+        LEFT JOIN dbo.Booking AS b ON b.BookingId = s.BookingId
+        WHERE b.BookingId IS NULL OR b.CustomerId <> i.CustomerId
+    )
+        THROW 51023, N'Invoice customer must match the Stay to Booking owner.', 1;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted AS i
+        JOIN deleted AS d ON d.InvoiceId = i.InvoiceId
+        WHERE d.StatusCode = 'DRAFT' AND i.StatusCode = 'PAID'
+          AND ((i.AmountDue > 0 AND NOT EXISTS (
+                    SELECT 1 FROM dbo.Payment AS p
+                    WHERE p.InvoiceId = i.InvoiceId AND p.PaymentKind = 'SETTLEMENT'
+               ))
+               OR i.AmountDue <> (
+                   SELECT COALESCE(SUM(p.Amount), 0)
+                   FROM dbo.Payment AS p
+                   WHERE p.InvoiceId = i.InvoiceId AND p.PaymentKind = 'SETTLEMENT'
+               ))
+    )
+        THROW 51024, N'Settlement payments must exactly equal AmountDue before finalization.', 1;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted AS i
+        JOIN deleted AS d ON d.InvoiceId = i.InvoiceId
+        WHERE d.StatusCode = 'DRAFT' AND i.StatusCode = 'PAID'
+    )
+    BEGIN
+        BEGIN TRY
+            EXEC sys.sp_set_session_context @key = N'HotelManager.FinalizeInvoice', @value = 1;
+
+            UPDATE su
+            SET InvoiceId = i.InvoiceId
+            FROM dbo.ServiceUsage AS su
+            JOIN inserted AS i ON i.StayId = su.StayId
+            JOIN deleted AS d ON d.InvoiceId = i.InvoiceId
+            WHERE d.StatusCode = 'DRAFT'
+              AND i.StatusCode = 'PAID'
+              AND su.IsVoided = 0
+              AND su.InvoiceId IS NULL;
+
+            DECLARE @Awards TABLE (
+                InvoiceId varchar(20) NOT NULL PRIMARY KEY,
+                MembershipId varchar(20) NOT NULL,
+                Points bigint NOT NULL
+            );
+
+            INSERT dbo.MembershipPointEntry (InvoiceId, MembershipId, Points, CreatedAt)
+            OUTPUT inserted.InvoiceId, inserted.MembershipId, inserted.Points
+              INTO @Awards (InvoiceId, MembershipId, Points)
+            SELECT i.InvoiceId,
+                   m.MembershipId,
+                   CONVERT(bigint, FLOOR((i.RoomCharge + i.ServiceCharge + i.Surcharge - i.DiscountAmount) / 10000)),
+                   i.IssuedAt
+            FROM inserted AS i
+            JOIN deleted AS d ON d.InvoiceId = i.InvoiceId
+            JOIN dbo.Membership AS m ON m.CustomerId = i.CustomerId AND m.IsActive = 1
+            WHERE d.StatusCode = 'DRAFT'
+              AND i.StatusCode = 'PAID'
+              AND NOT EXISTS (
+                  SELECT 1 FROM dbo.MembershipPointEntry AS pe WHERE pe.InvoiceId = i.InvoiceId
+              );
+
+            UPDATE m
+            SET Points = m.Points + a.Points
+            FROM dbo.Membership AS m
+            JOIN (
+                SELECT MembershipId, SUM(Points) AS Points
+                FROM @Awards
+                GROUP BY MembershipId
+            ) AS a ON a.MembershipId = m.MembershipId;
+
+            EXEC sys.sp_set_session_context @key = N'HotelManager.FinalizeInvoice', @value = NULL;
+        END TRY
+        BEGIN CATCH
+            EXEC sys.sp_set_session_context @key = N'HotelManager.FinalizeInvoice', @value = NULL;
+            THROW;
+        END CATCH;
+    END;
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_InvoiceLine_ImmutablePaid
+ON dbo.InvoiceLine
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (
+        SELECT 1
+        FROM (
+            SELECT InvoiceId FROM inserted
+            UNION
+            SELECT InvoiceId FROM deleted
+        ) AS changed
+        JOIN dbo.Invoice AS i ON i.InvoiceId = changed.InvoiceId
+        WHERE i.StatusCode = 'PAID'
+    )
+        THROW 51025, N'Lines of a paid invoice are immutable.', 1;
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_Payment_ImmutablePaid
+ON dbo.Payment
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (
+        SELECT 1
+        FROM (
+            SELECT InvoiceId FROM inserted WHERE InvoiceId IS NOT NULL
+            UNION
+            SELECT InvoiceId FROM deleted WHERE InvoiceId IS NOT NULL
+        ) AS changed
+        JOIN dbo.Invoice AS i ON i.InvoiceId = changed.InvoiceId
+        WHERE i.StatusCode = 'PAID'
+    )
+        THROW 51026, N'Payments of a paid invoice are immutable.', 1;
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_ServiceUsage_ProtectBilled
+ON dbo.ServiceUsage
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted AS su
+        JOIN dbo.Invoice AS i ON i.InvoiceId = su.InvoiceId
+        WHERE i.StayId <> su.StayId OR su.IsVoided = 1
+    )
+        THROW 51027, N'Billed service usage must be unvoided and belong to the invoice stay.', 1;
+
+    IF EXISTS (
+        SELECT 1
+        FROM deleted AS su
+        JOIN dbo.Invoice AS i ON i.InvoiceId = su.InvoiceId
+        WHERE i.StatusCode = 'PAID'
+    )
+        THROW 51028, N'Service usage linked to a paid invoice is immutable.', 1;
+
+    IF ISNULL(TRY_CONVERT(int, SESSION_CONTEXT(N'HotelManager.FinalizeInvoice')), 0) <> 1
+       AND EXISTS (
+           SELECT 1
+           FROM inserted AS su
+           JOIN dbo.Invoice AS i ON i.InvoiceId = su.InvoiceId
+           LEFT JOIN deleted AS old ON old.UsageId = su.UsageId
+           WHERE i.StatusCode = 'PAID' AND old.InvoiceId IS NULL
+       )
+        THROW 51029, N'Usage can be linked to a paid invoice only during finalization.', 1;
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_PointEntry_Protect
+ON dbo.MembershipPointEntry
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM deleted)
+        THROW 51030, N'Membership point ledger entries are append-only.', 1;
+    IF EXISTS (SELECT 1 FROM inserted)
+       AND ISNULL(TRY_CONVERT(int, SESSION_CONTEXT(N'HotelManager.FinalizeInvoice')), 0) <> 1
+        THROW 51031, N'Point entries are created only by invoice finalization.', 1;
+    IF EXISTS (
+        SELECT 1
+        FROM inserted AS pe
+        LEFT JOIN dbo.Invoice AS i ON i.InvoiceId = pe.InvoiceId AND i.StatusCode = 'PAID'
+        LEFT JOIN dbo.Membership AS m ON m.MembershipId = pe.MembershipId AND m.CustomerId = i.CustomerId
+        WHERE i.InvoiceId IS NULL OR m.MembershipId IS NULL OR pe.Points < 0
+    )
+        THROW 51032, N'Point entry invoice, membership owner, or points are invalid.', 1;
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_Membership_ProtectPoints
+ON dbo.Membership
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF UPDATE(Points)
+       AND ISNULL(TRY_CONVERT(int, SESSION_CONTEXT(N'HotelManager.FinalizeInvoice')), 0) <> 1
+        THROW 51033, N'Membership points change only through the point ledger.', 1;
+END;
+GO
+
+CREATE OR ALTER TRIGGER dbo.trg_AuditEvent_AppendOnly
+ON dbo.AuditEvent
+AFTER UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM deleted)
+        THROW 51034, N'Audit events are append-only.', 1;
+END;
+GO
+
+IF (SELECT COUNT(*) FROM dbo.HotelSetting) <> 1
+    THROW 51041, N'HotelSetting must contain exactly one row before SchemaVersion 4 is recorded.', 1;
+IF NOT EXISTS (SELECT 1 FROM dbo.SchemaVersion WHERE VersionNo = 4)
+    INSERT dbo.SchemaVersion (VersionNo) VALUES (4);
+GO
+
+-- BEGIN SEPAY SCHEMA V5
+-- Select your application database, then execute this block to upgrade version 4.
+IF DB_ID() IN (1, 2, 3, 4)
+BEGIN
+    RAISERROR(N'Select your application database in SSMS or use sqlcmd -d before running this script. System databases are not supported.', 16, 1);
+    SET NOEXEC ON;
+END;
+GO
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET ARITHABORT ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET NUMERIC_ROUNDABORT OFF;
+GO
+IF (SELECT MAX(VersionNo) FROM dbo.SchemaVersion) IS NULL
+   OR (SELECT MAX(VersionNo) FROM dbo.SchemaVersion) NOT IN (4, 5)
+    THROW 51050, N'SePay schema v5 requires schema version 4 or 5.', 1;
+
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    IF OBJECT_ID(N'dbo.PaymentIntent', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.[PaymentIntent] (
+            IntentId nvarchar(40) NOT NULL CONSTRAINT PK_PaymentIntent PRIMARY KEY,
+            IntentKind varchar(20) NOT NULL,
+            BookingId varchar(20) NULL,
+            StayId varchar(20) NULL,
+            Amount decimal(18,0) NOT NULL,
+            Fingerprint varchar(64) NULL,
+            AccountNo nvarchar(40) NOT NULL,
+            StatusCode varchar(20) NOT NULL,
+            ExpiresAt datetime2(0) NOT NULL,
+            CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_PaymentIntent_Created DEFAULT SYSUTCDATETIME(),
+            CreatedBy varchar(20) NULL,
+            InvoiceId varchar(20) NULL,
+            CONSTRAINT CK_PaymentIntent_Token CHECK (
+                DATALENGTH(IntentId) = 52 AND
+                LEFT(IntentId, 2) COLLATE Latin1_General_100_BIN2 = N'HT' AND
+                SUBSTRING(IntentId, 3, 24) COLLATE Latin1_General_100_BIN2 NOT LIKE N'%[^0-9A-Fa-f]%'
+            ),
+            CONSTRAINT CK_PaymentIntent_Amount CHECK (Amount > 0),
+            CONSTRAINT CK_PaymentIntent_Status CHECK (StatusCode IN ('PENDING', 'APPLIED', 'REVIEW', 'EXPIRED', 'CANCELLED')),
+            CONSTRAINT CK_PaymentIntent_Target CHECK (
+                (IntentKind = 'DEPOSIT' AND BookingId IS NOT NULL AND StayId IS NULL) OR
+                (IntentKind = 'SETTLEMENT' AND StayId IS NOT NULL AND BookingId IS NULL)
+            )
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.SepayReceipt', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.[SepayReceipt] (
+            ReceiptId nvarchar(40) NOT NULL CONSTRAINT PK_SepayReceipt PRIMARY KEY,
+            IntentId nvarchar(40) NULL,
+            Amount decimal(18,0) NOT NULL,
+            AccountNo nvarchar(40) NOT NULL,
+            Code nvarchar(40) NULL,
+            Outcome varchar(20) NOT NULL,
+            Reason nvarchar(250) NULL,
+            PaymentId varchar(30) NULL,
+            CreatedAt datetime2(0) NOT NULL CONSTRAINT DF_SepayReceipt_Created DEFAULT SYSUTCDATETIME(),
+            CONSTRAINT CK_SepayReceipt_Amount CHECK (Amount > 0),
+            CONSTRAINT CK_SepayReceipt_Outcome CHECK (Outcome IN ('APPLIED', 'REVIEW'))
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.FK_PaymentIntent_Booking', N'F') IS NULL
+        ALTER TABLE dbo.PaymentIntent WITH CHECK ADD CONSTRAINT FK_PaymentIntent_Booking FOREIGN KEY (BookingId) REFERENCES dbo.Booking(BookingId);
+    IF OBJECT_ID(N'dbo.FK_PaymentIntent_Stay', N'F') IS NULL
+        ALTER TABLE dbo.PaymentIntent WITH CHECK ADD CONSTRAINT FK_PaymentIntent_Stay FOREIGN KEY (StayId) REFERENCES dbo.Stay(StayId);
+    IF OBJECT_ID(N'dbo.FK_PaymentIntent_Account', N'F') IS NULL
+        ALTER TABLE dbo.PaymentIntent WITH CHECK ADD CONSTRAINT FK_PaymentIntent_Account FOREIGN KEY (CreatedBy) REFERENCES dbo.Account(AccountId);
+    IF OBJECT_ID(N'dbo.FK_PaymentIntent_Invoice', N'F') IS NULL
+        ALTER TABLE dbo.PaymentIntent WITH CHECK ADD CONSTRAINT FK_PaymentIntent_Invoice FOREIGN KEY (InvoiceId) REFERENCES dbo.Invoice(InvoiceId);
+    IF OBJECT_ID(N'dbo.FK_SepayReceipt_Intent', N'F') IS NULL
+        ALTER TABLE dbo.SepayReceipt WITH CHECK ADD CONSTRAINT FK_SepayReceipt_Intent FOREIGN KEY (IntentId) REFERENCES dbo.PaymentIntent(IntentId);
+    IF OBJECT_ID(N'dbo.FK_SepayReceipt_Payment', N'F') IS NULL
+        ALTER TABLE dbo.SepayReceipt WITH CHECK ADD CONSTRAINT FK_SepayReceipt_Payment FOREIGN KEY (PaymentId) REFERENCES dbo.Payment(PaymentId);
+
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.PaymentIntent') AND name = N'UX_PaymentIntent_PendingBooking')
+        CREATE UNIQUE INDEX UX_PaymentIntent_PendingBooking ON dbo.PaymentIntent(BookingId, IntentKind)
+        WHERE StatusCode = 'PENDING' AND IntentKind = 'DEPOSIT' AND BookingId IS NOT NULL;
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.PaymentIntent') AND name = N'UX_PaymentIntent_PendingStay')
+        CREATE UNIQUE INDEX UX_PaymentIntent_PendingStay ON dbo.PaymentIntent(StayId, IntentKind)
+        WHERE StatusCode = 'PENDING' AND IntentKind = 'SETTLEMENT' AND StayId IS NOT NULL;
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.SepayReceipt') AND name = N'UX_SepayReceipt_AppliedIntent')
+        CREATE UNIQUE INDEX UX_SepayReceipt_AppliedIntent ON dbo.SepayReceipt(IntentId)
+        WHERE Outcome = 'APPLIED' AND IntentId IS NOT NULL;
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.SepayReceipt') AND name = N'UX_SepayReceipt_Payment')
+        CREATE UNIQUE INDEX UX_SepayReceipt_Payment ON dbo.SepayReceipt(PaymentId)
+        WHERE PaymentId IS NOT NULL;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.SchemaVersion WHERE VersionNo = 5)
+        INSERT dbo.SchemaVersion (VersionNo) VALUES (5);
+    COMMIT TRANSACTION;
 END TRY
 BEGIN CATCH
- IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
- THROW;
+    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+    THROW;
 END CATCH;
 GO
-SELECT COUNT(*) AS SoBang FROM sys.tables WHERE is_ms_shipped=0;
-SELECT COUNT(*) AS SoKhoaNgoai FROM sys.foreign_keys;
-SELECT RoomTypeId,Name,DailyPrice FROM dbo.RoomType;
-SELECT t.name AS TenBang, SUM(p.rows) AS [SoDong] FROM sys.tables t JOIN sys.partitions p ON t.object_id=p.object_id AND p.index_id IN (0,1) GROUP BY t.name ORDER BY t.name;
+SELECT DB_NAME() AS DatabaseName,
+       (SELECT MAX(VersionNo) FROM dbo.SchemaVersion) AS SchemaVersion,
+       (SELECT COUNT(*) FROM sys.tables WHERE is_ms_shipped = 0) AS TableCount,
+       (SELECT COUNT(*) FROM sys.foreign_keys) AS ForeignKeyCount;
+SELECT RoomTypeId, Name, DailyPrice FROM dbo.RoomType ORDER BY RoomTypeId;
+PRINT N'Schema version 5 is ready in ' + QUOTENAME(DB_NAME()) + N'.';
 GO
+SET NOEXEC OFF;
+GO
+-- END SEPAY SCHEMA V5

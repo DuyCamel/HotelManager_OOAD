@@ -13,14 +13,33 @@ export default function createModule(ctx) {
       const hidden = () => field("id", "", "hidden", id);
       if (action === "admin.transfer") {
         const r = await api("/api/action/admin.challenge", { targetId: id });
+        const postActionOptions = [
+          ["ADMIN", "Chuyển thành tài khoản Admin"],
+          ["LOCK", r.canLock ? "Khóa tài khoản" : `Khóa tài khoản (Không khả dụng - hiện có ${r.adminCount} Admin)`],
+        ];
+        const note = [
+          `Mã OTP kiểm thử: ${r.demoCode}. Hết hạn sau 5 phút; tối đa 5 lần thử.`,
+          `Số Admin hiện tại: ${r.adminCount}.`,
+          r.canLock
+            ? "Đủ điều kiện chọn Khóa hoặc Chuyển thành Admin (còn ít nhất 1 Admin sau khi chuyển)."
+            : "Quy định bắt buộc: Phải có từ 2 Admin trở lên mới được phép khóa tài khoản để bảo đảm hệ thống luôn còn ít nhất 1 Admin.",
+        ].join(" ");
         return actionForm(
-          "Chuyển quyền Admin",
+          "Chuyển quyền Quản lý",
           [
             field("requestId", "", "hidden", r.requestId),
-            field("code", "Mã OTP 6 chữ số"),
+            field("targetId", "", "hidden", id),
+            field("code", "Mã OTP"),
+            field(
+              "postAction",
+              "Sau khi chuyển quyền, tài khoản Quản lý hiện tại sẽ",
+              "select",
+              "ADMIN",
+              postActionOptions,
+            ),
           ],
           "admin.transfer",
-          `OTP DEMO LOCAL: ${r.demoCode}. Chưa gửi SMS thật. Hết hạn sau 5 phút; tối đa 5 lần thử. Admin hiện tại sẽ trở thành Quản lý và phải đăng nhập lại.`,
+          note,
         );
       }
     },

@@ -10,32 +10,40 @@ const v = require("../../core/validation/fields");
 const passwords = require("../../core/auth/passwords");
 const { ensure } = require("../../core/errors/AppError");
 const { audit } = require("../_shared/stayRules");
+const customerFields = require("../customers/customer.validation");
 module.exports = (repo) => ({
   async update(user, b) {
-    const name = v.text(b.name, "Họ tên", 120),
-      phone = v.phone(b.phone);
+    const contact = customerFields.contact(b);
     return repo.transaction(async (tx) => {
-      await tx.update("accounts", user.id, { name, phone });
-      const c = (await tx.list("customers")).find(
-        (x) => x.accountId === user.id,
+      const account = await tx.find("accounts", user.id);
+      ensure(account?.isActive, "Tài khoản không còn hoạt động.", 409);
+      const allAccounts = await tx.list("accounts");
+      ensure(
+        !allAccounts.some(
+          (x) => x.id !== user.id && x.phone === contact.phone,
+        ),
+        "Số điện thoại đã thuộc tài khoản khác.",
+        409,
       );
-      if (c && b.identityNo)
+      const customers = await tx.list("customers");
+      const c = customers.find((x) => x.accountId === user.id);
+      let values;
+      if (c) {
+        values = customerFields.profile(b, c);
         ensure(
-          !(await tx.list("customers")).some(
-            (x) => x.id !== c.id && x.identityNo === b.identityNo.trim(),
-          ),
+          !values.identityNo ||
+            !customers.some(
+              (x) =>
+                x.id !== c.id &&
+                customerFields.identityKey(x.identityNo) ===
+                  customerFields.identityKey(values.identityNo),
+            ),
           "Giấy tờ đã thuộc hồ sơ khách khác.",
           409,
         );
-      if (c)
-        await tx.update("customers", c.id, {
-          name,
-          phone,
-          address: String(b.address || "").slice(0, 250),
-          identityNo: b.identityNo
-            ? v.text(b.identityNo, "Giấy tờ", 30)
-            : c.identityNo,
-        });
+      }
+      await tx.update("accounts", user.id, contact);
+      if (c) await tx.update("customers", c.id, values);
       await audit(tx, user, "Cập nhật hồ sơ", "ACCOUNT", user.id);
       return { ok: true };
     });

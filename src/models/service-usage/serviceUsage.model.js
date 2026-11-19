@@ -15,32 +15,79 @@ const h = require("../_shared/stayRules");
 module.exports = (repo) => ({
   async addUsage(user, b) {
     allow(user, "usage");
+    const batch = Object.hasOwn(b, "items");
+    ensure(
+      !batch ||
+        (Array.isArray(b.items) && b.items.length >= 1 && b.items.length <= 50),
+      "Chọn từ 1 đến 50 dịch vụ mỗi lần ghi nhận.",
+    );
+    const items = batch ? b.items : [b];
     return repo.transaction(async (tx) => {
-      const st = await tx.find("stays", b.stayId),
-        service = await tx.find("services", b.serviceId);
+      const st = await tx.find("stays", b.stayId);
       ensure(st && !st.checkOutAt, "Chỉ ghi dịch vụ khi khách đang lưu trú.");
-      ensure(service?.isActive, "Dịch vụ ngừng cung cấp.");
-      const row = {
-        id: v.id("SD"),
-        stayId: st.id,
-        serviceId: service.id,
-        quantity: v.number(b.quantity, "Số lượng", 1, 1000),
-        unitPrice: service.price,
-        usedAt: new Date().toISOString(),
-        recordedBy: user.id,
-        isVoided: false,
-        invoiceId: null,
-      };
-      await tx.insert("usage", row);
-      await h.audit(
-        tx,
-        user,
-        "Ghi dịch vụ sử dụng",
-        "STAY",
-        st.id,
-        service.name,
+      const assignment = (await tx.list("history")).find(
+        (item) => item.stayId === st.id && !item.toAt,
       );
-      return row;
+      ensure(assignment, "Không tìm thấy phòng đang lưu trú.");
+      const room = await tx.find("rooms", assignment.roomId);
+      const type = room && (await tx.find("types", room.typeId));
+      ensure(type, "Không tìm thấy loại phòng đang lưu trú.");
+      const seen = new Set();
+      const createdRows = [];
+      for (const item of items) {
+        ensure(
+          item && typeof item === "object" && !Array.isArray(item),
+          "Dịch vụ không hợp lệ.",
+        );
+        const serviceId = v.text(item.serviceId, "Mã dịch vụ", 30);
+        const service = await tx.find("services", serviceId);
+        ensure(service?.isActive, "Dịch vụ ngừng cung cấp.");
+        ensure(!seen.has(service.id), "Không chọn trùng dịch vụ.");
+        seen.add(service.id);
+        const serviceRule = (type.serviceConfig || []).find(
+          (rule) => rule.serviceId === service.id,
+        );
+        ensure(
+          serviceRule,
+          "Dịch vụ này chưa được cấu hình cho loại phòng đang lưu trú.",
+        );
+        ensure(
+          !batch || !serviceRule.included,
+          "Dịch vụ đã gồm trong giá phòng, không ghi thêm phát sinh.",
+        );
+        const quantity = batch && item.quantity === undefined ? 1 : item.quantity;
+        ensure(
+          !batch || ["number", "string"].includes(typeof quantity),
+          "Số lượng không hợp lệ.",
+        );
+        const row = {
+          id: v.id("SD"),
+          stayId: st.id,
+          serviceId: service.id,
+          quantity: v.number(quantity, "Số lượng", 1, 1000),
+          unitPrice: serviceRule.included ? 0 : service.price,
+          usedAt: new Date().toISOString(),
+          recordedBy: user.id,
+          isVoided: false,
+          invoiceId: null,
+        };
+        const created = await tx.insert("usage", row);
+        await h.audit(
+          tx,
+          user,
+          "Ghi dịch vụ sử dụng",
+          "STAY",
+          st.id,
+          `${service.name}${serviceRule.included ? " (đã gồm trong giá phòng)" : ""}`,
+        );
+        createdRows.push(created);
+      }
+      return batch
+        ? {
+            items: createdRows,
+            total: createdRows.reduce((sum, row) => sum + row.quantity * row.unitPrice, 0),
+          }
+        : createdRows[0];
     });
   },
   async voidUsage(user, b) {

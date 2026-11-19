@@ -8,10 +8,16 @@
 /** CSRF, kiểm tra tài khoản ở mỗi request và giới hạn lần đăng nhập trong cửa sổ 15 phút. */
 const { randomBytes, timingSafeEqual } = require("node:crypto");
 const { ensure } = require("../errors/AppError");
+const config = require("../../config/env");
 exports.csrf = (req, res, next) => {
+  const safeMethod = ["GET", "HEAD", "OPTIONS"].includes(req.method);
+  if (!req.session.csrf && safeMethod && req.path.startsWith("/api/")) {
+    res.locals.csrf = "";
+    return next();
+  }
   req.session.csrf ||= randomBytes(32).toString("hex");
   res.locals.csrf = req.session.csrf;
-  if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+  if (!safeMethod) {
     const t = req.get("X-CSRF-Token") || req.body?._csrf;
     const a = Buffer.from(String(t || "")),
       b = Buffer.from(req.session.csrf);
@@ -32,7 +38,15 @@ exports.auth = (repo) => async (req, res, next) => {
         req.session.epoch !== global.hotelEpoch
       ) {
         delete req.session.user;
-      } else req.user = u;
+      } else {
+        req.user = u;
+        if (req.session.cookie) {
+          req.session.cookie.maxAge =
+            u.role === "CUSTOMER"
+              ? config.sessionHours * 3600000
+              : 365 * 24 * 3600000;
+        }
+      }
     }
     res.locals.user = req.user;
     next();

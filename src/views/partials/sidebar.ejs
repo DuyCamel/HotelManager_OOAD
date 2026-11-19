@@ -1,30 +1,80 @@
-<aside class="sidebar">
-<a class="brand" href="/">A<span>✦</span> AURORA</a>
-<span class="sidebar-caption">HOTEL WORKSPACE</span>
-<nav id="side-nav">
-<% const items=[['overview','◈','Tổng quan','reports'],['board','▦','Sơ đồ phòng','board'],['bookings','▤','Đặt phòng','bookings'],['stays','⇄','Nhận & trả phòng','stays'],['customers','♙','Khách hàng','customers'],['usage','♧','Dịch vụ sử dụng','usage'],['cards','◇','Thẻ thành viên','cards'],['invoices','▧','Hóa đơn','invoices'],['catalog','▥','Phòng & danh mục','catalog'],['accounts','♟','Tài khoản','accounts'],['reports','↗','Báo cáo','reports'],['settings','⚙','Cấu hình','admin'],['backups','▣','Sao lưu/Khôi phục','admin'],['audit','▤','Nhật ký','admin']];items.forEach(([id,icon,title,permission])=>{if(has(permission)){ %>
-<button data-page="<%= id %>">
-<span>
-<%= icon %>
-</span>
-<%= title %>
-</button>
-<% }});if(user.role==='CUSTOMER'){ %>
-<button data-page="search">
-<span>⌕</span>Tìm & đặt phòng</button>
-<button data-page="mybookings">
-<span>▤</span>Đặt phòng của tôi</button>
-<button data-page="invoices">
-<span>▧</span>Hóa đơn của tôi</button>
-<button data-page="mycard">
-<span>◇</span>Thẻ của tôi</button>
-<% } %>
-<button data-page="profile">
-<span>○</span>Hồ sơ cá nhân</button>
-</nav>
-<div class="sidebar-bottom">
-<span class="mode-dot">
-</span> <%= config.mode==='demo'?'Dữ liệu demo':'SQL Server' %>
-<small>AURORA · HOSPITALITY OS</small>
-</div>
+<%
+const navigationByRole = {
+  MANAGER: [
+    ['accounts', '/app/accounts', 'Tài khoản & phân quyền'],
+    ['backups', '/app/backups', 'Sao lưu & khôi phục'],
+    ['audit', '/app/audit', 'Nhật ký hoạt động'],
+  ],
+  ADMIN: [
+    ['overview', '/app/dashboard', 'Tổng quan vận hành'],
+    ['board', '/app/housekeeping', 'Sơ đồ phòng'],
+    ['bookings', '/app/bookings', 'Đặt phòng'],
+    ['stays', '/app/stays', 'Nhận & trả phòng'],
+    ['customers', '/app/customers', 'Khách hàng'],
+    ['invoices', '/app/invoices', 'Hóa đơn'],
+    ['cards', '/app/memberships', 'Thẻ thành viên'],
+    ['catalog', '/app/rooms', 'Phòng & danh mục'],
+    ['accounts', '/app/accounts', 'Nhân sự'],
+    ['reports', '/app/reports', 'Báo cáo & thống kê'],
+    ['settings', '/app/settings', 'Cấu hình khách sạn'],
+  ],
+  RECEPTIONIST: [
+    ['board', '/app/housekeeping', 'Sơ đồ phòng'],
+    ['bookings', '/app/bookings', 'Đặt phòng'],
+    ['customers', '/app/customers', 'Khách hàng'],
+    ['stays', '/app/stays', 'Nhận & trả phòng'],
+    ['invoices', '/app/invoices', 'Hóa đơn'],
+    ['cards', '/app/memberships', 'Thẻ thành viên'],
+    ['services-read', '/app/services', 'Bảng giá dịch vụ'],
+  ],
+  HOUSEKEEPER: [['board', '/app/housekeeping', 'Sơ đồ phòng của tôi']],
+  CUSTOMER: [
+    ['search', '/app/search', 'Tìm phòng'],
+    ['mybookings', '/app/mybookings', 'Đặt phòng của tôi'],
+    ['invoices', '/portal/invoices', 'Hóa đơn của tôi'],
+    ['mycard', '/app/mycard', 'Thành viên'],
+  ],
+};
+const roleCaptions = {
+  ADMIN: 'Điều hành khách sạn',
+  MANAGER: 'Quản trị hệ thống',
+  RECEPTIONIST: 'Quầy lễ tân',
+  HOUSEKEEPER: 'Buồng phòng',
+  CUSTOMER: 'Khu vực khách hàng',
+};
+const navItems = navigationByRole[user.role] || [];
+%>
+<aside class="sidebar" id="workspace-sidebar" aria-label="Điều hướng chính">
+  <div class="sidebar-branding">
+    <a class="brand" href="/app">A<span aria-hidden="true">+</span> AURORA</a>
+    <span class="sidebar-caption"><%= roleCaptions[user.role] || 'Không gian làm việc' %></span>
+  </div>
+  <nav id="side-nav">
+    <% navItems.forEach(([id, href, title], index) => { %>
+      <a href="<%= href %>" class="nav-item <%= initialPage === id ? 'active' : '' %>" <% if (initialPage === id) { %>aria-current="page"<% } %>>
+        <span class="nav-index" aria-hidden="true"><%= String(index + 1).padStart(2, '0') %></span>
+        <span><%= title %></span>
+        <% if (id === 'cards') { %>
+          <span class="nav-badge-pill" id="sidebar-cards-badge" hidden>0</span>
+        <% } %>
+      </a>
+    <% }); %>
+  </nav>
+  <div class="sidebar-utilities">
+    <span class="sidebar-caption">Tài khoản</span>
+    <a href="/app/profile" class="nav-item utility <%= initialPage === 'profile' ? 'active' : '' %>" <% if (initialPage === 'profile') { %>aria-current="page"<% } %>>
+      <span class="nav-index" aria-hidden="true">ID</span>
+      <span>Hồ sơ cá nhân</span>
+    </a>
+  </div>
+  <div class="sidebar-bottom sidebar-policy-bottom">
+    <button type="button" class="sidebar-policy-btn" id="open-hotel-policy-btn" data-open-policy aria-label="Xem chính sách và quy định khách sạn">
+      <span class="policy-btn-icon" aria-hidden="true">📜</span>
+      <span class="policy-btn-text">
+        <strong>Chính sách & Quy định</strong>
+        <small>Nhận/trả phòng · Phụ thu · Hướng dẫn</small>
+      </span>
+      <span class="policy-btn-arrow" aria-hidden="true">↗</span>
+    </button>
+  </div>
 </aside>

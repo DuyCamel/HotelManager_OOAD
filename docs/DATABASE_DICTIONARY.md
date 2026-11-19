@@ -1,8 +1,8 @@
 # Từ điển dữ liệu
 
-Tự sinh bằng `npm run docs:dictionary` từ `database/01_schema.sql` và `database/02_programmability.sql`. Không sửa tay file này. `npm run docs:check` kiểm tra tài liệu có còn khớp DDL. Đây là metadata đọc từ script, không phải chứng nhận đã chạy SQL Server.
+Tự sinh bằng `npm run docs:dictionary` từ schema ứng dụng chuẩn `database/HotelManagerOOAD.sql`. Không sửa tay file này. `npm run docs:check` kiểm tra tài liệu có còn khớp DDL. Đây là metadata đọc từ script, không phải chứng nhận đã chạy SQL Server.
 
-Tổng: **23 bảng, 167 cột, 36 khóa ngoại**.
+Tổng: **25 bảng, 208 cột, 41 khóa ngoại**.
 
 ## Danh sách bảng
 
@@ -13,24 +13,26 @@ Tổng: **23 bảng, 167 cột, 36 khóa ngoại**.
 | Account | 10 |
 | Customer | 9 |
 | RoomType | 8 |
-| Room | 7 |
+| Room | 10 |
 | HotelService | 6 |
 | RoomTypeService | 3 |
-| HolidayRate | 7 |
+| HolidayRate | 10 |
 | Membership | 5 |
 | Booking | 14 |
-| Stay | 8 |
+| Stay | 9 |
 | StayRoomHistory | 6 |
-| Invoice | 13 |
+| Invoice | 22 |
 | InvoiceLine | 8 |
 | Payment | 9 |
 | MembershipPointEntry | 4 |
-| HousekeepingTask | 7 |
+| HousekeepingTask | 8 |
 | DamageReport | 7 |
-| HotelSetting | 10 |
+| HotelSetting | 13 |
 | BackupHistory | 6 |
 | AuditEvent | 7 |
 | ServiceUsage | 9 |
+| PaymentIntent | 12 |
+| SepayReceipt | 9 |
 
 ## SchemaVersion
 
@@ -101,6 +103,9 @@ Khóa ngoại:
 | RoomTypeId | varchar(20) | Không |  | varchar(20) NOT NULL |
 | StatusCode | varchar(20) | Không |  | varchar(20) NOT NULL CONSTRAINT DF_Room_Status DEFAULT 'AVAILABLE' |
 | ImagePath | nvarchar(512) | Có |  | nvarchar(512) NULL |
+| ImageGalleryJson | nvarchar(2000) | Có |  | nvarchar(2000) NULL |
+| ViewName | nvarchar(100) | Có |  | nvarchar(100) NULL |
+| Amenities | nvarchar(1000) | Có |  | nvarchar(1000) NULL |
 | Note | nvarchar(1000) | Không |  | nvarchar(1000) NOT NULL CONSTRAINT DF_Room_Note DEFAULT N'' |
 | RowVersion | rowversion | Theo SQL Server |  | rowversion |
 
@@ -139,8 +144,11 @@ Khóa ngoại:
 | HolidayRateId | varchar(20) | Không | PK | varchar(20) NOT NULL CONSTRAINT PK_HolidayRate PRIMARY KEY |
 | Name | nvarchar(120) | Không |  | nvarchar(120) NOT NULL |
 | RoomTypeId | varchar(20) | Không |  | varchar(20) NOT NULL |
-| StartDate | date | Không |  | date NOT NULL |
-| EndDate | date | Không |  | date NOT NULL |
+| ScheduleType | varchar(10) | Không |  | varchar(10) NOT NULL CONSTRAINT DF_HolidayRate_ScheduleType DEFAULT 'ONE_OFF' |
+| StartDate | date | Có |  | date NULL |
+| EndDate | date | Có |  | date NULL |
+| StartMonthDay | char(5) | Có |  | char(5) NULL |
+| EndMonthDay | char(5) | Có |  | char(5) NULL |
 | IncreasePercent | decimal(7,2) | Không |  | decimal(7,2) NOT NULL |
 | IsActive | bit | Không |  | bit NOT NULL CONSTRAINT DF_HolidayRate_Active DEFAULT 1 |
 
@@ -176,7 +184,7 @@ Khóa ngoại:
 | ChannelCode | varchar(20) | Không |  | varchar(20) NOT NULL |
 | RoomCharge | decimal(18,2) | Không |  | decimal(18,2) NOT NULL |
 | DepositAmount | decimal(18,2) | Không |  | decimal(18,2) NOT NULL CONSTRAINT DF_Booking_Deposit DEFAULT 0 |
-| HoldUntil | datetime2(0) | Không |  | datetime2(0) NOT NULL |
+| HoldUntil | datetime2(0) | Có |  | datetime2(0) NULL |
 | CreatedAt | datetime2(0) | Không |  | datetime2(0) NOT NULL CONSTRAINT DF_Booking_Created DEFAULT SYSUTCDATETIME() |
 | CreatedBy | varchar(20) | Có |  | varchar(20) NULL |
 | RowVersion | rowversion | Theo SQL Server |  | rowversion |
@@ -193,8 +201,9 @@ Khóa ngoại:
 |---|---|---|---|---|
 | StayId | varchar(20) | Không | PK | varchar(20) NOT NULL CONSTRAINT PK_Stay PRIMARY KEY |
 | BookingId | varchar(20) | Không |  | varchar(20) NOT NULL |
-| RoomId | varchar(20) | Không |  | varchar(20) NOT NULL |
 | IdentityNo | varchar(30) | Không |  | varchar(30) NOT NULL |
+| CheckInAt | datetime2(0) | Không |  | datetime2(0) NOT NULL |
+| CheckOutAt | datetime2(0) | Có |  | datetime2(0) NULL |
 | RoomCharge | decimal(18,2) | Không |  | decimal(18,2) NOT NULL |
 | Surcharge | decimal(18,2) | Không |  | decimal(18,2) NOT NULL CONSTRAINT DF_Stay_Surcharge DEFAULT 0 |
 | CreatedBy | varchar(20) | Có |  | varchar(20) NULL |
@@ -203,7 +212,6 @@ Khóa ngoại:
 Khóa ngoại:
 
 - `FK_Stay_BookingId`: [BookingId] → Booking([BookingId]).
-- `FK_Stay_RoomId`: [RoomId] → Room([RoomId]).
 - `FK_Stay_CreatedBy`: [CreatedBy] → Account([AccountId]).
 
 ## StayRoomHistory
@@ -238,7 +246,16 @@ Khóa ngoại:
 | AmountDue | computed | Theo SQL Server |  | AS CONVERT(decimal(18,2), RoomCharge + ServiceCharge + Surcharge - DiscountAmount - DepositAmount) PERSISTED |
 | StatusCode | varchar(10) | Không |  | varchar(10) NOT NULL CONSTRAINT DF_Invoice_Status DEFAULT 'DRAFT' |
 | PaymentMethod | varchar(20) | Không |  | varchar(20) NOT NULL |
+| CustomerNameSnapshot | nvarchar(120) | Có |  | nvarchar(120) NULL |
+| CustomerIdentitySnapshot | varchar(30) | Có |  | varchar(30) NULL |
+| CustomerPhoneSnapshot | varchar(30) | Có |  | varchar(30) NULL |
+| RoomNameSnapshot | nvarchar(100) | Có |  | nvarchar(100) NULL |
+| HotelNameSnapshot | nvarchar(200) | Có |  | nvarchar(200) NULL |
+| HotelAddressSnapshot | nvarchar(512) | Có |  | nvarchar(512) NULL |
+| HotelHotlineSnapshot | varchar(30) | Có |  | varchar(30) NULL |
+| PaymentReferenceSnapshot | varchar(100) | Có |  | varchar(100) NULL |
 | CreatedBy | varchar(20) | Có |  | varchar(20) NULL |
+| RowVersion | rowversion | Theo SQL Server |  | rowversion |
 
 Khóa ngoại:
 
@@ -305,6 +322,7 @@ Khóa ngoại:
 | TaskId | varchar(20) | Không | PK | varchar(20) NOT NULL CONSTRAINT PK_HousekeepingTask PRIMARY KEY |
 | RoomId | varchar(20) | Không |  | varchar(20) NOT NULL |
 | StayId | varchar(20) | Có |  | varchar(20) NULL |
+| CheckoutAt | datetime2(0) | Không |  | datetime2(0) NOT NULL |
 | DeadlineAt | datetime2(0) | Không |  | datetime2(0) NOT NULL |
 | CompletedAt | datetime2(0) | Có |  | datetime2(0) NULL |
 | StatusCode | varchar(20) | Không |  | varchar(20) NOT NULL |
@@ -342,12 +360,15 @@ Khóa ngoại:
 | HotelName | nvarchar(200) | Không |  | nvarchar(200) NOT NULL |
 | Address | nvarchar(512) | Không |  | nvarchar(512) NOT NULL |
 | Hotline | varchar(15) | Không |  | varchar(15) NOT NULL |
+| CheckInTime | time(0) | Không |  | time(0) NOT NULL |
+| CheckOutTime | time(0) | Không |  | time(0) NOT NULL |
 | LateFeeFrom | time(0) | Không |  | time(0) NOT NULL |
 | LateFeePercent | decimal(7,2) | Không |  | decimal(7,2) NOT NULL |
 | BankCode | varchar(30) | Có |  | varchar(30) NULL |
 | BankAccount | varchar(40) | Có |  | varchar(40) NULL |
 | BankOwner | nvarchar(150) | Có |  | nvarchar(150) NULL |
 | LogoPath | nvarchar(512) | Có |  | nvarchar(512) NULL |
+| QrImagePath | nvarchar(512) | Có |  | nvarchar(512) NULL |
 
 ## BackupHistory
 
@@ -390,45 +411,69 @@ Khóa ngoại:
 | Quantity | decimal(10,2) | Không |  | decimal(10,2) NOT NULL |
 | UnitPrice | decimal(18,2) | Không |  | decimal(18,2) NOT NULL |
 | UsedAt | datetime2(0) | Không |  | datetime2(0) NOT NULL CONSTRAINT DF_Usage_UsedAt DEFAULT SYSUTCDATETIME() |
-| RecordedBy | varchar(20) | Không |  | varchar(20) NOT NULL |
+| RecordedBy | varchar(20) | Có |  | varchar(20) NULL |
 | IsVoided | bit | Không |  | bit NOT NULL CONSTRAINT DF_Usage_Void DEFAULT 0 |
 | InvoiceId | varchar(20) | Có |  | varchar(20) NULL |
 
 Khóa ngoại:
 
-- `FK_Usage_Stay`: StayId → Stay(StayId).
-- `FK_Usage_Service`: ServiceId → HotelService(ServiceId).
-- `FK_Usage_Actor`: RecordedBy → Account(AccountId).
-- `FK_Usage_Invoice`: InvoiceId → Invoice(InvoiceId).
+- `FK_ServiceUsage_StayId`: [StayId] → Stay([StayId]).
+- `FK_ServiceUsage_ServiceId`: [ServiceId] → HotelService([ServiceId]).
+- `FK_ServiceUsage_RecordedBy`: [RecordedBy] → Account([AccountId]).
+- `FK_ServiceUsage_InvoiceId`: [InvoiceId] → Invoice([InvoiceId]).
+
+## PaymentIntent
+
+| Cột | Kiểu | NULL | PK / identity | Định nghĩa gốc |
+|---|---|---|---|---|
+| IntentId | nvarchar(40) | Không | PK | nvarchar(40) NOT NULL CONSTRAINT PK_PaymentIntent PRIMARY KEY |
+| IntentKind | varchar(20) | Không |  | varchar(20) NOT NULL |
+| BookingId | varchar(20) | Có |  | varchar(20) NULL |
+| StayId | varchar(20) | Có |  | varchar(20) NULL |
+| Amount | decimal(18,0) | Không |  | decimal(18,0) NOT NULL |
+| Fingerprint | varchar(64) | Có |  | varchar(64) NULL |
+| AccountNo | nvarchar(40) | Không |  | nvarchar(40) NOT NULL |
+| StatusCode | varchar(20) | Không |  | varchar(20) NOT NULL |
+| ExpiresAt | datetime2(0) | Không |  | datetime2(0) NOT NULL |
+| CreatedAt | datetime2(0) | Không |  | datetime2(0) NOT NULL CONSTRAINT DF_PaymentIntent_Created DEFAULT SYSUTCDATETIME() |
+| CreatedBy | varchar(20) | Có |  | varchar(20) NULL |
+| InvoiceId | varchar(20) | Có |  | varchar(20) NULL |
+
+Khóa ngoại:
+
+- `FK_PaymentIntent_Booking`: BookingId → Booking(BookingId).
+- `FK_PaymentIntent_Stay`: StayId → Stay(StayId).
+- `FK_PaymentIntent_Account`: CreatedBy → Account(AccountId).
+- `FK_PaymentIntent_Invoice`: InvoiceId → Invoice(InvoiceId).
+
+## SepayReceipt
+
+| Cột | Kiểu | NULL | PK / identity | Định nghĩa gốc |
+|---|---|---|---|---|
+| ReceiptId | nvarchar(40) | Không | PK | nvarchar(40) NOT NULL CONSTRAINT PK_SepayReceipt PRIMARY KEY |
+| IntentId | nvarchar(40) | Có |  | nvarchar(40) NULL |
+| Amount | decimal(18,0) | Không |  | decimal(18,0) NOT NULL |
+| AccountNo | nvarchar(40) | Không |  | nvarchar(40) NOT NULL |
+| Code | nvarchar(40) | Có |  | nvarchar(40) NULL |
+| Outcome | varchar(20) | Không |  | varchar(20) NOT NULL |
+| Reason | nvarchar(250) | Có |  | nvarchar(250) NULL |
+| PaymentId | varchar(30) | Có |  | varchar(30) NULL |
+| CreatedAt | datetime2(0) | Không |  | datetime2(0) NOT NULL CONSTRAINT DF_SepayReceipt_Created DEFAULT SYSUTCDATETIME() |
+
+Khóa ngoại:
+
+- `FK_SepayReceipt_Intent`: IntentId → PaymentIntent(IntentId).
+- `FK_SepayReceipt_Payment`: PaymentId → Payment(PaymentId).
 
 ## Trigger, view, function và procedure
 
 | Loại | Object |
 |---|---|
-| TRIGGER | trg_Booking_Validate |
-| TRIGGER | trg_HolidayRate_NoOverlap |
-| TRIGGER | trg_Room_ProtectReservations |
-| TRIGGER | trg_Customer_Validate |
-| TRIGGER | trg_Stay_Validate |
-| TRIGGER | trg_InvoiceLine_ImmutablePaid |
-| TRIGGER | trg_Payment_Validate |
-| TRIGGER | trg_Membership_PointsFromLedger |
-| TRIGGER | trg_PointEntry_Immutable |
+| VIEW | v_StayCurrentRoom |
 | TRIGGER | trg_Invoice_Finalize |
+| TRIGGER | trg_InvoiceLine_ImmutablePaid |
+| TRIGGER | trg_Payment_ImmutablePaid |
+| TRIGGER | trg_ServiceUsage_ProtectBilled |
+| TRIGGER | trg_PointEntry_Protect |
+| TRIGGER | trg_Membership_ProtectPoints |
 | TRIGGER | trg_AuditEvent_AppendOnly |
-| FUNCTION | fn_QuoteRoom |
-| VIEW | v_RoomBoard |
-| VIEW | v_BookingLookup |
-| VIEW | v_Membership |
-| VIEW | v_DailyRevenue |
-| PROCEDURE | usp_ExpireUnpaidBookings |
-| PROCEDURE | usp_CreateBooking |
-| PROCEDURE | usp_ConfirmDeposit |
-| PROCEDURE | usp_CheckIn |
-| PROCEDURE | usp_CheckOut |
-| PROCEDURE | usp_ChangeRoom |
-| PROCEDURE | usp_FinishCleaning |
-| PROCEDURE | usp_TransferAdmin |
-| TRIGGER | trg_PointEntry_ValidateInsert |
-| TRIGGER | trg_RoomType_ProtectCapacity |
-| TRIGGER | trg_Usage_Validate |

@@ -15,6 +15,7 @@ module.exports = {
       bankAccount: "BankAccount",
       bankOwner: "BankOwner",
       logoPath: "LogoPath",
+      qrImagePath: "QrImagePath",
     },
   ],
 };

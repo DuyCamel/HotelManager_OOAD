@@ -9,7 +9,7 @@ Rà soát từ nhánh `main` tại commit `d2c9ba48df8533fa353b5a2c4898772170fd2
 ## 1. Phần đã có, tiếp tục sử dụng
 
 - Web Express/EJS, tách frontend/backend, adapter SQL/demo, `.env_ex`, hướng dẫn kết nối, F5.
-- Đăng nhập email, khách tự đăng ký, Admin tạo nhân viên; phân quyền, khóa/mở tài khoản, đổi mật khẩu và thu hồi phiên.
+- Đăng nhập email, khách tự đăng ký, Quản lý/Admin tạo nhân viên; phân quyền, khóa/mở tài khoản, đổi mật khẩu và thu hồi phiên. Quản lý nắm quyền cao nhất.
 - Đặt phòng/cọc thủ công/hết hạn, nhận/đổi phòng, ghi dịch vụ, trả phòng và hóa đơn, điểm thẻ cơ bản.
 - CRUD danh mục cơ bản; sơ đồ phòng, xác nhận dọn/báo hỏng có ảnh; báo cáo CSV cơ bản; backup demo/SQL và restore demo.
 
@@ -31,11 +31,11 @@ Chia theo khối lượng còn lại: TV1 có nhiều màn hình hệ thống; T
 
 | Mã | Mức / trạng thái | Công việc còn lại | Điều kiện hoàn thành |
 |---|---|---|---|
-| A1 | P1 · UI thiếu, backend có nền | Tách màn tài khoản thành 2 tab Nhân viên/Khách hàng; hoàn thiện lỗi/loading của đăng nhập/đăng ký và các thao tác khóa/sửa/phân quyền. | Tab Khách không có phân quyền/chuyển Admin. Admin toàn quyền; Quản lý không sửa Admin, không phân quyền/chuyển Admin. Request trái quyền bị chặn ở server. |
+| A1 | P1 · UI thiếu, backend có nền | Tách màn tài khoản thành 2 tab Nhân viên/Khách hàng; hoàn thiện lỗi/loading của đăng nhập/đăng ký và các thao tác khóa/sửa/phân quyền. | Tab Khách không có phân quyền/chuyển quyền Quản lý. Quản lý phụ trách phân quyền thường và chuyển quyền cao nhất. Admin quản lý tài khoản trong phạm vi được cấp và không sửa/khóa/cấp vai trò Quản lý. Request trái quyền bị chặn ở server. |
 | A2 | P1 · Bổ sung UI/truy vấn, đồng bộ dữ liệu | Hồ sơ khách có tra cứu và lịch sử lưu trú/thẻ; hồ sơ cá nhân hiển thị điểm/hạng hoặc liên kết rõ tới thẻ. Đồng bộ name/phone giữa account và customer, thống nhất địa chỉ tối đa 512 ký tự. | Hồ sơ khách tại quầy không cần tài khoản. Khách chỉ xem dữ liệu của mình. Thẻ cấp một lần, có vô hiệu hóa; không xóa hoặc chỉnh điểm tay. Phối hợp TV2 đối chiếu điểm sau checkout. |
-| A3 | P1 · Chưa có lọc/xuất audit đầy đủ | Thay nhật ký 100 dòng cắt từ 500 dòng gần nhất bằng truy vấn có lọc thời gian/người/hành động/đối tượng và phân trang; xuất CSV và bản in/lưu PDF của kết quả lọc. | Chỉ Admin truy cập. Lọc/trang/xuất cùng một tập dữ liệu, không chỉ lọc phần đã tải; CSV escape đúng; có log khách và nhân viên. |
-| A4 | P1 nếu nghiệm thu SMS · Cần tích hợp ngoài | Tách provider OTP demo/SMS. Gắn chuyển Admin với OTP thật qua SMS khi có nhà cung cấp/cấu hình. | OTP hết hạn/giới hạn thử, buộc với phiên và mục tiêu, không lộ OTP thật. Admin cũ thành Quản lý, cả hai phiên cũ bị thu hồi. Nếu chưa có dịch vụ SMS, giữ nhãn DEMO và báo chưa hoàn thành tích hợp; không giả vờ gửi SMS. |
-| A5 | P1 · Hoàn thiện UI/nghiệm thu | Tách rõ Sao lưu và Khôi phục trong màn hệ thống; hiển thị tiến trình/kết quả/lỗi và giải thích JSON demo khác SQL `.bak`; ghi nhận thất bại khi có thể. | Chỉ Admin. Restore demo đăng xuất mọi phiên. SQL backup chạy với quyền/thư mục đúng trên máy SQL; SQL restore hiện ngoại tuyến bằng SSMS và UI hướng dẫn rõ. Ảnh cần sao lưu riêng. |
+| A3 | P1 · Chưa có lọc/xuất audit đầy đủ | Thay nhật ký 100 dòng cắt từ 500 dòng gần nhất bằng truy vấn có lọc thời gian/người/hành động/đối tượng và phân trang; xuất CSV và bản in/lưu PDF của kết quả lọc. | Chỉ Quản lý truy cập. Lọc/trang/xuất cùng một tập dữ liệu, không chỉ lọc phần đã tải; CSV escape đúng; có log khách và nhân viên. |
+| A4 | P1 nếu nghiệm thu SMS · Cần tích hợp ngoài | Tách provider OTP demo/SMS. Gắn chuyển quyền Quản lý với OTP thật qua SMS khi có nhà cung cấp/cấu hình. | OTP hết hạn/giới hạn thử, buộc với phiên và mục tiêu, không lộ OTP thật. Quản lý cũ thành Admin, Admin nhận quyền thành Quản lý, cả hai phiên cũ bị thu hồi. Nếu chưa có dịch vụ SMS, giữ nhãn DEMO và báo chưa hoàn thành tích hợp; không giả vờ gửi SMS. |
+| A5 | P1 · Hoàn thiện UI/nghiệm thu | Tách rõ Sao lưu và Khôi phục trong màn hệ thống; hiển thị tiến trình/kết quả/lỗi và giải thích JSON demo khác SQL `.bak`; ghi nhận thất bại khi có thể. | Chỉ Quản lý. Restore demo đăng xuất mọi phiên. SQL backup chạy với quyền/thư mục đúng trên máy SQL; SQL restore hiện ngoại tuyến bằng SSMS và UI hướng dẫn rõ. Ảnh cần sao lưu riêng. |
 | A6 | P0 để nhóm làm song song · Tổ chức giao diện/API chung | Đã tách route/controller/model/view và JavaScript module. Phần còn lại: chuẩn hóa core HTTP/table/form/toast và hợp đồng dữ liệu theo màn hình. Chuẩn hóa 401/403/lỗi mạng, loading, tránh gửi lặp; chốt truy vấn theo màn hình với TV3. | Mỗi người sửa được module mình, không phải sửa toàn bộ workspace.js. Các page/command cũ vẫn dùng được; menu/quyền không sai. Có trạng thái rỗng/lỗi/mobile; không mở production chỉ để bỏ lỗi cấu hình. |
 
 Backend TV1: `src/models/{auth,accounts,profile,customers,memberships,settings,backups,audit,workspace}/`; các controller/route cùng tên; `src/core/`, `src/app.js`, `src/config/env.js` và file ghép `src/models/index.js`, `src/routes/index.js`.
@@ -89,8 +89,8 @@ Frontend TV3: `src/views/{rooms,room-types,services,holiday-rates,housekeeping,r
 | `src/models/housekeeping/`, controller/route cùng tên | TV3 | C3 |
 | `src/models/{reports,dashboard}/`, controller/route cùng tên | TV3 | C4 |
 | `src/config/db.js`, `src/models/_shared/{sql.model,demo.model,store,definitions}.js` | TV3 | C1, C5 |
-| `src/models/<module>/schema.js`, `database/01_schema.sql`, `02_programmability.sql` | TV3 | C1, C2 |
-| `src/models/_shared/demo.seed.js`, `database/03_seed.sql`, `scripts/generate-dictionary.js` | TV3 | C6 |
+| `src/models/<module>/schema.js`, `database/HotelManagerOOAD.sql` | TV3 | C1, C2 |
+| `src/models/_shared/demo.seed.js`, phần seed trong `database/HotelManagerOOAD.sql`, `scripts/generate-dictionary.js` | TV3 | C6 |
 
 Đường dẫn chính xác theo từng module xem `MODULES.md`. `_shared/stayRules.js` do TV2 giữ; adapter/mapping/seed do TV3 giữ. Không giao trọn thư mục `_shared` cho cả hai người cùng sửa không phân biệt file.
 
@@ -99,7 +99,7 @@ Frontend TV3: `src/views/{rooms,room-types,services,holiday-rates,housekeeping,r
 1. **Đã tách cấu trúc A6:** mỗi đối tượng có route/controller/model/view, frontend JS từng module. Mở `docs/MODULES.md` để chọn đường dẫn hiện có; không tạo lại `workspace.js` chung. TV1 giữ core/layout, người làm chỉ sửa module của mình và bàn giao hợp đồng dùng chung.
 2. **TV2/B1 và TV3/C1 cùng chốt ví dụ ngày/giá:** payload đang là `YYYY-MM-DD`, không khôi phục datetime-local hoặc các quy tắc giờ cũ khi chưa được yêu cầu. Ghi ví dụ same-day, 11:59/12:00/13:59/14:00, UTC so với ngày Việt Nam và ngày lễ; quy định rõ trường hợp qua nửa đêm.
 3. **Contract API:** TV2 bàn giao tên command/payload/result cho gia hạn/phiếu thuê; TV3 bàn giao truy vấn báo cáo/ảnh/tiện ích; TV1 ghép controller/routes/menu và chuẩn phản hồi. Từng chủ module chịu trách nhiệm kiểm tra quyền server của chức năng mình.
-4. **SQL/schema do TV3 giữ:** TV1/TV2 gửi thay đổi dữ liệu cần thiết; TV3 cập nhật đồng bộ SQL/mapping/seed, ghi cách nâng cấp khi DB đã tồn tại. Giữ cấu trúc ba file SQL chính, không DROP dữ liệu của thành viên.
+4. **SQL/schema do TV3 giữ:** TV1/TV2 gửi thay đổi dữ liệu cần thiết; TV3 cập nhật đồng bộ SQL/mapping/seed, ghi cách nâng cấp khi DB đã tồn tại. Giữ `database/HotelManagerOOAD.sql` là script chuẩn duy nhất, có thể chạy lại và không DROP dữ liệu của thành viên.
 5. **Nhánh gợi ý:** `tv1-he-thong`, `tv2-luu-tru`, `tv3-phong-database`. Người làm ghép cập nhật ghi rõ màn hình/command/schema bị ảnh hưởng; không đẩy `.env`, `node_modules`, JSON demo, ảnh cá nhân hoặc `.bak`.
 6. Nghiệm thu phần mình bằng vai trò đúng/sai, dữ liệu rỗng/lỗi/mất kết nối, màn hình desktop/mobile và SQL Server thật; ghi kết quả trong phần bàn giao. **Không thêm thư mục/file/script test tự động**, theo yêu cầu hiện tại.
 

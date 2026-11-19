@@ -6,16 +6,26 @@ Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
 -->
 <!DOCTYPE html>
 <!-- Head dùng chung: tài nguyên nội bộ, CSP không cần script inline. -->
-<html lang="vi">
+<html lang="vi-VN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="csrf-token" content="<%= csrf %>" />
+    <meta name="theme-color" content="#173f35" />
+    <meta
+      name="description"
+      content="<%= config.name %> - trải nghiệm lưu trú và quản lý khách sạn hiện đại."
+    />
     <title><%= config.name %> — Hotel Management</title>
     <link rel="stylesheet" href="/assets/css/core/base.css" />
+    <link rel="stylesheet" href="/assets/css/home/home.css" />
+    <link rel="stylesheet" href="/assets/css/auth/auth.css" />
+    <link rel="stylesheet" href="/assets/css/workspace/workspace.css" />
+    <link rel="stylesheet" href="/assets/css/workspace/dashboard.css" />
+    <link rel="stylesheet" href="/assets/css/workspace/operations.css" />
+    <link rel="stylesheet" href="/assets/css/workspace/catalog.css" />
+    <link rel="stylesheet" href="/assets/css/workspace/admin.css" />
+    <link rel="stylesheet" href="/assets/css/workspace/customer.css" />
+    <link rel="stylesheet" href="/assets/css/core/dialog.css" />
     <script src="/assets/js/core/http.js" defer></script>
-  <link rel="stylesheet" href="/assets/css/home/home.css">
-<link rel="stylesheet" href="/assets/css/auth/auth.css">
-<link rel="stylesheet" href="/assets/css/workspace/workspace.css">
-<link rel="stylesheet" href="/assets/css/core/dialog.css">
-</head>
+  </head>

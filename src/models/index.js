@@ -10,6 +10,7 @@ module.exports = (repo) => ({
   customers: require("./customers/customer.model")(repo),
   memberships: require("./memberships/membership.model")(repo),
   invoices: require("./invoices/invoice.model")(repo),
+  payments: require("./payments/payment.model")(repo),
   usage: require("./service-usage/serviceUsage.model")(repo),
   settings: require("./settings/setting.model")(repo),
   backups: require("./backups/backup.model")(repo),

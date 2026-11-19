@@ -10,6 +10,7 @@ module.exports = {
       checkOutAt: "CheckOutAt",
       roomCharge: "RoomCharge",
       surcharge: "Surcharge",
+      createdBy: "CreatedBy",
     },
   ],
   history: [

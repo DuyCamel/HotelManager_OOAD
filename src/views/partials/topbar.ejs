@@ -1,19 +1,48 @@
 <header class="topbar">
-<button id="menu-toggle" aria-label="Mở menu">☰</button>
-<div class="breadcrumb">Không gian làm việc <span>/</span> <b id="crumb">Sơ đồ phòng</b>
-</div>
-<div class="user-menu">
-<div class="avatar">
-<%= user.name.slice(0,1) %>
-</div>
-<div>
-<strong>
-<%= user.name %>
-</strong>
-<small>
-<%= labels[user.role] %>
-</small>
-</div>
-<button class="icon-button" id="logout" title="Đăng xuất">↪</button>
-</div>
+  <div class="topbar-context">
+    <button id="menu-toggle" type="button" aria-label="Mở menu" aria-controls="workspace-sidebar">Menu</button>
+    <div class="breadcrumb"><span>Workspace</span><i aria-hidden="true">/</i><b id="crumb">Tổng quan</b></div>
+  </div>
+  <div class="topbar-actions">
+    <div class="topbar-notifications" id="topbar-notifications-root">
+      <button id="topbar-bell-btn" class="topbar-bell-btn" type="button" aria-label="Thông báo hệ thống" aria-haspopup="true" aria-expanded="false" title="Thông báo hệ thống">
+        <svg class="bell-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        </svg>
+        <span id="topbar-notifications-badge" class="notifications-badge" hidden>0</span>
+      </button>
+
+      <div id="topbar-notifications-dropdown" class="notifications-dropdown" hidden>
+        <div class="notifications-header">
+          <div class="notifications-header-title">
+            <span class="notifications-title-text">Thông báo</span>
+            <span id="notifications-header-badge" class="notifications-counter-pill" hidden>0</span>
+          </div>
+          <button id="notifications-close-btn" class="notifications-close-btn" type="button" aria-label="Đóng thông báo">✕</button>
+        </div>
+        <div id="notifications-list" class="notifications-list"></div>
+        <div id="notifications-empty" class="notifications-empty" hidden>
+          <span class="empty-icon" aria-hidden="true">🌿</span>
+          <p class="empty-title">Không có thông báo mới</p>
+          <p class="empty-subtitle">Tất cả vận hành và yêu cầu hiện đang ổn định.</p>
+        </div>
+        <div class="notifications-footer">
+          <a href="/app/memberships" class="notifications-footer-link" id="notifications-footer-link">Xem tất cả thẻ thành viên →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="user-menu">
+    <a class="profile-shortcut" href="/app/profile" aria-label="Mở hồ sơ cá nhân">
+      <span class="avatar" aria-hidden="true"><%= (user.name || '?').trim().charAt(0).toUpperCase() %></span>
+      <span class="user-copy">
+        <strong><%= user.name || 'Người dùng' %></strong>
+        <small><span class="presence-dot" aria-hidden="true"></span><%= labels[user.role] || user.role %></small>
+      </span>
+    </a>
+    <button class="logout-button" id="logout" type="button" title="Đăng xuất" aria-label="Đăng xuất">
+      <span>Đăng xuất</span><b aria-hidden="true">-&gt;</b>
+    </button>
+  </div>
 </header>

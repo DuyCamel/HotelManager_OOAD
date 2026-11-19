@@ -1,105 +1,200 @@
-/** UI reports. TODO TV3: nhiệm vụ cụ thể trong docs/MODULES.md và PHAN_CONG_3_NGUOI.md. */
-export default function createModule(ctx) {
-  const { money, E, $, btn, field, d, page } = ctx;
-  function report() {
-    const paid = d.invoices.filter((x) => x.status === "PAID");
-    let from = $("#report-from")?.value || "",
-      to = $("#report-to")?.value || "";
-    const rows = paid.filter(
-      (i) =>
-        (!from || i.issuedAt.slice(0, 10) >= from) &&
-        (!to || i.issuedAt.slice(0, 10) <= to),
-    );
-    const sum = (k) => rows.reduce((s, r) => s + Number(r[k]), 0);
-    const total =
-      sum("roomCharge") +
-      sum("serviceCharge") +
-      sum("surcharge") -
-      sum("discount");
-    const months = {};
-    rows.forEach((r) => {
-      const k = r.issuedAt.slice(0, 7);
-      months[k] =
-        (months[k] || 0) +
-        r.roomCharge +
-        r.serviceCharge +
-        r.surcharge -
-        r.discount;
+/** Server-derived reporting UI; the browser never submits financial totals. */
+let reportData = null;
+let reportError = "";
+let reportLoading = null;
+let activeContext = null;
+
+const statusLabels = {
+  PENDING: "Chờ cọc",
+  CONFIRMED: "Đã cọc",
+  CHECKED_IN: "Đang lưu trú",
+  COMPLETED: "Hoàn tất",
+  CANCELLED: "Đã hủy",
+  DRAFT: "Nháp",
+  PAID: "Đã thanh toán",
+  RECORDED: "Chưa lập hóa đơn",
+  INVOICED: "Đã lên hóa đơn",
+  VOIDED: "Đã hủy",
+  AVAILABLE: "Sẵn sàng",
+  OCCUPIED: "Đang ở",
+  DIRTY: "Cần dọn",
+  MAINTENANCE: "Bảo trì",
+  DISABLED: "Ngừng hoạt động",
+  CASH: "Tiền mặt",
+  TRANSFER: "Chuyển khoản",
+  CARD: "Thẻ",
+  UNSPECIFIED: "Chưa xác định",
+};
+
+function queryFor(range) {
+  const query = new URLSearchParams();
+  if (range?.from) query.set("from", range.from);
+  if (range?.to) query.set("to", range.to);
+  return query;
+}
+
+async function loadReport(ctx, range) {
+  if (reportLoading) return reportLoading;
+  reportError = "";
+  const root = document.querySelector("#page-content");
+  if (root)
+    root.innerHTML =
+      '<div class="admin-loading"><span></span><p>Đang tổng hợp dữ liệu trên máy chủ…</p></div>';
+  reportLoading = ctx
+    .api(`/api/modules/reports?${queryFor(range)}`)
+    .then((result) => {
+      reportData = result;
+    })
+    .catch((error) => {
+      reportError = error.message;
+    })
+    .finally(() => {
+      reportLoading = null;
+      if (activeContext?.page === "reports") {
+        const content = document.querySelector("#page-content");
+        if (content) content.innerHTML = renderReport(activeContext);
+      }
     });
-    const max = Math.max(1, ...Object.values(months));
-    return `<div class="panel report-filter"><label>Từ ngày<input type="date" id="report-from" value="${E(from)}"></label><label>Đến ngày<input type="date" id="report-to" value="${E(to)}"></label>${btn("Áp dụng", "report.filter")}${btn("Xuất CSV", "report.export")}</div><div class="stats"><article><div><span>Doanh thu đã ghi nhận</span><strong class="money-stat">${money(total)}</strong></div></article><article><div><span>Tiền phòng</span><strong class="money-stat">${money(sum("roomCharge"))}</strong></div></article><article><div><span>Dịch vụ</span><strong class="money-stat">${money(sum("serviceCharge"))}</strong></div></article><article><div><span>Hóa đơn thanh toán</span><strong>${rows.length}</strong></div></article></div><div class="panel chart"><h3>Doanh thu theo tháng</h3>${
-      Object.entries(months)
-        .sort()
-        .map(
-          ([m, n]) =>
-            `<div class="bar-row"><span>${m}</span><meter min="0" max="${max}" value="${n}"></meter><b>${money(n)}</b></div>`,
-        )
-        .join("") || '<p class="empty">Chưa có doanh thu trong khoảng này.</p>'
-    }</div><p class="muted">Ngày lọc theo UTC trong dữ liệu. Doanh thu = tiền phòng + dịch vụ + phụ thu − giảm giá; tiền cọc không tính hai lần.</p>`;
-  }
+  return reportLoading;
+}
+
+function dimensionTable(ctx, title, rows, type) {
+  const { E, money } = ctx;
+  return `<article class="panel admin-dimension-card">
+    <div class="admin-card-heading"><h3>${E(title)}</h3><span>${rows.reduce((sum, row) => sum + row.count, 0)} bản ghi</span></div>
+    <div class="admin-dimension-list">${rows
+      .map(
+        (row) => `<div><span>${E(statusLabels[row.status || row.method] || row.status || row.method)}</span><strong>${row.count}</strong>${type === "money" ? `<small>${money(row.amount ?? row.revenue)}</small>` : ""}</div>`,
+      )
+      .join("")}</div>
+  </article>`;
+}
+
+function renderReport(ctx) {
+  const { E, money, btn } = ctx;
+  if (reportError)
+    return `<div class="admin-callout error"><strong>Không thể tạo báo cáo</strong><p>${E(reportError)}</p><button type="button" class="small" data-report-retry>Thử lại</button></div>`;
+  if (!reportData)
+    return '<div class="admin-loading"><span></span><p>Đang tổng hợp dữ liệu trên máy chủ…</p></div>';
+  const data = reportData;
+  const maximum = Math.max(1, ...data.daily.map((row) => row.revenue));
+  const chartRows = data.daily.slice(-31);
+  const genDate = new Date(data.generatedAt);
+  const generated = Number.isNaN(genDate.getTime())
+    ? data.generatedAt
+    : (() => {
+        try {
+          const parts = new Intl.DateTimeFormat("en-GB", {
+            timeZone: data.timeZone || "Asia/Ho_Chi_Minh",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }).formatToParts(genDate);
+          const p = Object.fromEntries(parts.map((item) => [item.type, item.value]));
+          return `${p.hour}:${p.minute} ${p.day}/${p.month}/${p.year}`;
+        } catch {
+          return genDate.toLocaleString("vi-VN");
+        }
+      })();
+  const recent = [...data.daily].reverse().slice(0, 14);
+  return `<div class="admin-shell report-admin">
+    <section class="panel admin-card report-controls no-print">
+      <div class="admin-filter-grid">
+        <label>Từ ngày<input type="date" lang="vi-VN" id="report-from" value="${E(data.range.from)}"></label>
+        <label>Đến ngày<input type="date" lang="vi-VN" id="report-to" value="${E(data.range.to)}"></label>
+        <div class="admin-button-group">${btn("Áp dụng", "report.filter", "", "primary")}${btn("Xuất CSV", "report.export")}<button type="button" class="small" data-report-print>In báo cáo</button></div>
+      </div>
+      <p class="admin-data-note">Tổng hợp lúc ${E(generated)} · Múi giờ nghiệp vụ ${E(data.timeZone)} · CSV được tạo lại trên máy chủ.</p>
+    </section>
+    <section class="admin-kpis report-kpis" aria-label="Chỉ số báo cáo">
+      <article class="featured"><span>Doanh thu ghi nhận</span><strong>${money(data.totals.revenue)}</strong><small>Không cộng tiền cọc hai lần</small></article>
+      <article><span>Tiền phòng</span><strong>${money(data.totals.room)}</strong><small>${data.totals.paidInvoices} hóa đơn đã thanh toán</small></article>
+      <article><span>Dịch vụ</span><strong>${money(data.totals.service)}</strong><small>Trên hóa đơn đã thanh toán</small></article>
+      <article><span>Công suất phòng</span><strong>${data.occupancy.rate.toFixed(1)}%</strong><small>${data.occupancy.occupiedRoomNights}/${data.occupancy.availableRoomNights} lượt phòng-đêm</small></article>
+    </section>
+    <section class="admin-report-grid">
+      <article class="panel admin-card admin-chart-card">
+        <div class="admin-card-heading"><div><span class="eyebrow">DOANH THU</span><h2>Theo ngày địa phương</h2></div><span>${chartRows.length < data.daily.length ? `31/${data.daily.length} ngày có doanh thu gần nhất` : `${data.daily.length} ngày có doanh thu`}</span></div>
+        <div class="admin-bars">${
+          chartRows
+            .map(
+              (row) => `<div class="admin-bar-row"><span>${E(row.date.slice(5))}</span><div><i style="width:${Math.max(2, (row.revenue * 100) / maximum)}%"></i></div><strong>${money(row.revenue)}</strong></div>`,
+            )
+            .join("") || '<p class="empty">Chưa có doanh thu trong khoảng này.</p>'
+        }</div>
+      </article>
+      <article class="panel admin-card occupancy-card">
+        <div class="admin-card-heading"><div><span class="eyebrow">CÔNG SUẤT</span><h2>Theo loại phòng</h2></div></div>
+        <div class="occupancy-list">${data.occupancy.roomTypes
+          .map(
+            (row) => `<div><div><strong>${E(row.name)}</strong><span>${row.rooms} phòng · ${row.occupiedRoomNights} lượt phòng-đêm</span></div><b>${row.occupancyRate.toFixed(1)}%</b></div>`,
+          )
+          .join("")}</div>
+        <p class="admin-data-note">${E(data.occupancy.basis)}</p>
+      </article>
+    </section>
+    <section class="admin-dimensions">
+      ${dimensionTable(ctx, "Trạng thái đặt phòng", data.bookingStatuses)}
+      ${dimensionTable(ctx, "Trạng thái dịch vụ", data.serviceStatuses, "money")}
+      ${dimensionTable(ctx, "Ảnh chụp trạng thái phòng", data.roomStatuses)}
+      ${dimensionTable(ctx, "Phương thức trên hóa đơn", data.paymentMethods, "money")}
+    </section>
+    <section class="panel admin-card report-detail">
+      <div class="admin-card-heading"><div><span class="eyebrow">CHI TIẾT</span><h2>14 ngày doanh thu gần nhất</h2></div><span>Xem toàn bộ trong CSV</span></div>
+      <div class="table-scroll"><table><thead><tr><th>Ngày</th><th>Hóa đơn</th><th>Tiền phòng</th><th>Dịch vụ</th><th>Phụ thu</th><th>Giảm giá</th><th>Doanh thu</th></tr></thead><tbody>${
+        recent
+          .map(
+            (row) => `<tr><td>${E(row.date)}</td><td>${row.invoices}</td><td>${money(row.room)}</td><td>${money(row.service)}</td><td>${money(row.surcharge)}</td><td>${money(row.discount)}</td><td><strong>${money(row.revenue)}</strong></td></tr>`,
+          )
+          .join("") || '<tr><td colspan="7" class="empty">Không có hóa đơn đã thanh toán.</td></tr>'
+      }</tbody></table></div>
+    </section>
+  </div>`;
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("click", (event) => {
+    if (event.target.closest("[data-report-print]")) window.print();
+    if (event.target.closest("[data-report-retry]") && activeContext)
+      loadReport(activeContext, reportData?.range);
+  });
+}
+
+export default function createModule(ctx) {
+  activeContext = ctx;
   return {
     render() {
-      let html = "";
-      switch (page) {
-        case "reports":
-          html = report();
-          break;
-      }
-      return html;
+      if (ctx.page !== "reports") return "";
+      if (!reportData && !reportLoading)
+        queueMicrotask(() => loadReport(ctx));
+      return renderReport(ctx);
     },
-    async act(action, id) {
-      const hidden = () => field("id", "", "hidden", id);
-      if (action === "report.filter") {
-        const html = report();
-        $("#page-content").innerHTML = html;
-        return;
-      }
+    async act(action) {
+      const range = {
+        from: document.querySelector("#report-from")?.value || "",
+        to: document.querySelector("#report-to")?.value || "",
+      };
+      if (action === "report.filter") return loadReport(ctx, range);
       if (action === "report.export") {
-        const from = $("#report-from").value,
-          to = $("#report-to").value;
-        const rows = d.invoices.filter(
-          (r) =>
-            r.status === "PAID" &&
-            (!from || r.issuedAt.slice(0, 10) >= from) &&
-            (!to || r.issuedAt.slice(0, 10) <= to),
+        const response = await fetch(
+          `/api/modules/reports.csv?${queryFor(range)}`,
+          { headers: { Accept: "text/csv" } },
         );
-        const csv =
-          "\uFEFF" +
-          [
-            [
-              "Ma hoa don",
-              "Ngay UTC",
-              "Tien phong",
-              "Dich vu",
-              "Phu thu",
-              "Giam gia",
-              "Doanh thu",
-            ],
-            ...rows.map((r) => [
-              r.id,
-              r.issuedAt,
-              r.roomCharge,
-              r.serviceCharge,
-              r.surcharge,
-              r.discount,
-              r.roomCharge + r.serviceCharge + r.surcharge - r.discount,
-            ]),
-          ]
-            .map((a) =>
-              a.map((x) => '"' + String(x).replace(/"/g, '""') + '"').join(","),
-            )
-            .join("\r\n");
-        const url = URL.createObjectURL(
-          new Blob([csv], { type: "text/csv;charset=utf-8" }),
-        );
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "doanh-thu.csv";
-        a.click();
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error(error.error || "Không thể xuất báo cáo.");
+        }
+        const url = URL.createObjectURL(await response.blob());
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `bao-cao-${range.from}-${range.to}.csv`;
+        link.click();
         URL.revokeObjectURL(url);
-        return;
       }
     },
-    report,
+    report: () => renderReport(ctx),
   };
 }

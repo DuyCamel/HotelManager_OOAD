@@ -11,6 +11,22 @@ const v = require("../../core/validation/fields");
 const { ensure } = require("../../core/errors/AppError");
 const { allow } = require("../../core/auth/rbac");
 const h = require("../_shared/stayRules");
+const config = require("../../config/env");
+
+async function applyDeposit(tx, user, booking, amount, method, reference) {
+  ensure(booking?.status === "PENDING" && booking.deposit === 0, "Phiếu không còn chờ cọc.", 409);
+  v.number(amount, "Tiền cọc", 1, booking.roomCharge);
+  ensure(!(await tx.list("payments")).some((p) => p.bookingId === booking.id && p.kind === "DEPOSIT"),
+    "Phiếu đã có giao dịch cọc; cần đối soát trước.", 409);
+  await tx.update("bookings", booking.id, { deposit: amount, status: "CONFIRMED" });
+  const payment = await tx.insert("payments", {
+    id: v.id("GD"), bookingId: booking.id, invoiceId: null,
+    kind: "DEPOSIT", amount, method, externalReference: reference,
+    paidAt: new Date().toISOString(), createdBy: user?.id || null,
+  });
+  await h.audit(tx, user, user ? "Xác nhận cọc thủ công" : "SePay xác nhận cọc", "BOOKING", booking.id, reference || "");
+  return payment;
+}
 
 module.exports = (repo) => ({
   async expire() {
@@ -19,16 +35,42 @@ module.exports = (repo) => ({
   async available(b) {
     const startDate = v.calendarDate(b.startAt, "Ngày nhận"),
       endDate = v.calendarDate(b.endAt, "Ngày trả"),
-      { startAt, endAt } = h.fixedStayTimes(startDate, endDate),
       guests = v.number(b.guests || 1, "Số người", 1, 20);
+    ensure(
+      startDate >= h.localDatePart(new Date()) && endDate > startDate,
+      "Ngày nhận không được ở quá khứ, ngày trả phải sau ngày nhận.",
+    );
+    // Một lần đọc mỗi bảng cho trang tìm kiếm; chốt lại lịch/giá trong transaction khi đặt.
+    const keys = [
+      "rooms",
+      "types",
+      "bookings",
+      "stays",
+      "history",
+      "holidays",
+      "settings",
+    ];
+    const loaded = Object.fromEntries(
+      await Promise.all(keys.map(async (key) => [key, await repo.list(key)])),
+    );
+    const policy = loaded.settings[0];
+    ensure(policy, "Chưa cấu hình giờ nhận/trả phòng.");
+    const { startAt, endAt } = h.fixedStayTimes(
+      startDate,
+      endDate,
+      policy,
+    );
     ensure(
       Date.parse(endAt) > Date.parse(startAt),
       "Ngày trả phải sau ngày nhận.",
     );
-    // Một lần đọc mỗi bảng cho trang tìm kiếm; chốt lại lịch/giá trong transaction khi đặt.
-    const keys = ["rooms", "types", "bookings", "holidays"];
-    const loaded = Object.fromEntries(
-      await Promise.all(keys.map(async (key) => [key, await repo.list(key)])),
+    ensure(
+      !h.isNoShowExpired(
+        { status: "CONFIRMED", startAt, endAt },
+        Date.now(),
+      ),
+      `Đã quá giờ nhận phòng (${config.noShowTime}); không thể đặt cho hôm nay.`,
+      409,
     );
     const snapshot = {
       list: async (key) => loaded[key],
@@ -54,14 +96,29 @@ module.exports = (repo) => ({
     if (user.role !== "CUSTOMER") allow(user, "bookings");
     const startDate = v.calendarDate(b.startAt, "Ngày nhận"),
       endDate = v.calendarDate(b.endAt, "Ngày trả"),
-      { startAt, endAt } = h.fixedStayTimes(startDate, endDate),
       guests = v.number(b.guests, "Số người", 1, 20);
-    ensure(
-      Date.parse(startAt) >= Date.now() - 300000 &&
-        Date.parse(endAt) > Date.parse(startAt),
-      "Ngày nhận không được ở quá khứ, ngày trả phải sau ngày nhận.",
-    );
     return repo.transaction(async (tx) => {
+      const nowDate = new Date();
+      ensure(
+        startDate >= h.localDatePart(nowDate) && endDate > startDate,
+        "Ngày nhận không được ở quá khứ, ngày trả phải sau ngày nhận.",
+      );
+      const policy = (await tx.list("settings"))[0];
+      ensure(policy, "Chưa cấu hình giờ nhận/trả phòng.");
+      const { startAt, endAt } = h.fixedStayTimes(
+        startDate,
+        endDate,
+        policy,
+      );
+      ensure(
+        Date.parse(endAt) > Date.parse(startAt),
+        "Ngày trả phải sau ngày nhận.",
+      );
+      ensure(
+        !h.isNoShowExpired({ status: "CONFIRMED", startAt, endAt }, nowDate.getTime()),
+        `Đã quá giờ nhận phòng (${config.noShowTime}); hãy dùng luồng Nhận phòng ngay nếu còn phòng.`,
+        409,
+      );
       await h.expire(tx);
       const customer =
         user.role === "CUSTOMER"
@@ -78,8 +135,24 @@ module.exports = (repo) => ({
       );
       const roomCharge = await h.quote(tx, room.id, startAt, endAt),
         online = user.role === "CUSTOMER",
-        deposit = online ? 0 : v.number(b.deposit, "Tiền cọc", 1, roomCharge);
-      const now = new Date().toISOString();
+        method = b.method ?? "CASH";
+      if (!online)
+        ensure(["CASH", "TRANSFER"].includes(method), "Chọn cọc tiền mặt hoặc chuyển khoản.");
+      const requestedDeposit = online ? 0 : v.number(b.deposit, "Tiền cọc", 1, roomCharge),
+        pending = online || method === "TRANSFER",
+        deposit = pending ? 0 : requestedDeposit;
+      if (!pending)
+        ensure(
+          b.receiptConfirmed === true,
+          "Phải xác nhận đã nhận tiền cọc trước khi tạo phiếu tại quầy.",
+        );
+      const now = nowDate.toISOString();
+      const holdUntil = new Date(
+        Math.min(
+          nowDate.getTime() + config.bookingHoldMinutes * 60000,
+          h.noShowDeadline({ startAt, endAt }),
+        ),
+      ).toISOString();
       const row = {
         id: v.id("DP"),
         customerId: customer.id,
@@ -87,15 +160,15 @@ module.exports = (repo) => ({
         startAt,
         endAt,
         guests,
-        status: online ? "PENDING" : "CONFIRMED",
+        status: pending ? "PENDING" : "CONFIRMED",
         channel: online ? "ONLINE" : "COUNTER",
         roomCharge,
         deposit,
-        holdUntil: new Date(Date.now() + 1800000).toISOString(),
+        holdUntil,
         createdAt: now,
         createdBy: user.id,
       };
-      await tx.insert("bookings", row);
+      const created = await tx.insert("bookings", row);
       if (deposit)
         await tx.insert("payments", {
           id: v.id("GD"),
@@ -109,7 +182,7 @@ module.exports = (repo) => ({
           createdBy: user.id,
         });
       await h.audit(tx, user, "Đặt phòng", "BOOKING", row.id, room.id);
-      return row;
+      return created;
     });
   },
   async deposit(user, b) {
@@ -123,47 +196,93 @@ module.exports = (repo) => ({
         ["CASH", "TRANSFER", "CARD"].includes(b.method),
         "Phương thức không hợp lệ.",
       );
-      await tx.update("bookings", booking.id, {
-        deposit: amount,
-        status: "CONFIRMED",
-      });
-      await tx.insert("payments", {
-        id: v.id("GD"),
-        bookingId: booking.id,
-        invoiceId: null,
-        kind: "DEPOSIT",
-        amount,
-        method: b.method,
-        externalReference: b.reference
-          ? v.text(b.reference, "Mã giao dịch", 100)
-          : null,
-        paidAt: new Date().toISOString(),
-        createdBy: user.id,
-      });
-      await h.audit(tx, user, "Xác nhận cọc thủ công", "BOOKING", booking.id);
+      ensure(
+        b.receiptConfirmed === true,
+        "Phải xác nhận đã nhận hoặc đối soát tiền cọc.",
+      );
+      const reference = ["TRANSFER", "CARD"].includes(b.method)
+        ? v.text(b.reference, "Mã giao dịch", 100)
+        : null;
+      await applyDeposit(tx, user, booking, amount, b.method, reference);
       return { ok: true };
     });
   },
   async cancel(user, b) {
     if (user.role !== "CUSTOMER") allow(user, "bookings");
     return repo.transaction(async (tx) => {
+      await h.expire(tx);
       const booking = await tx.find("bookings", b.id);
       ensure(booking, "Không có phiếu.", 404);
+      let isRefunded = false;
+      const originalDeposit = Number(booking.deposit || 0);
+
       if (user.role === "CUSTOMER") {
         const customer = await tx.find("customers", booking.customerId);
         ensure(
-          customer.accountId === user.id,
+          customer && customer.accountId === user.id,
           "Không có quyền với phiếu này.",
           403,
         );
+        if (booking.status === "PENDING" && originalDeposit === 0) {
+          // Phiếu giữ chỗ chưa cọc
+        } else if (booking.status === "CONFIRMED") {
+          // Khách đổi ý định trong vòng 2 tiếng kể từ khi đặt: được hủy và hoàn cọc
+          const createdTime = Date.parse(booking.createdAt || booking.startAt);
+          const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+          const isWithin2Hours =
+            Number.isFinite(createdTime) && (Date.now() - createdTime <= TWO_HOURS_MS);
+          ensure(
+            isWithin2Hours,
+            "Đã quá thời hạn 2 tiếng để hủy miễn phí và hoàn cọc. Vui lòng liên hệ quầy lễ tân để được hỗ trợ.",
+            400,
+          );
+          isRefunded = true;
+        } else {
+          ensure(false, "Không thể hủy đặt phòng ở trạng thái này.", 400);
+        }
+      } else {
+        ensure(
+          (booking.status === "PENDING" && originalDeposit === 0) ||
+            booking.status === "CONFIRMED",
+          "Chỉ hủy phiếu đang giữ chỗ hoặc phiếu đã cọc khi khách không đến (giữ cọc).",
+        );
       }
-      ensure(
-        booking.status === "PENDING" && booking.deposit === 0,
-        "Chỉ hủy phiếu chưa cọc; hoàn cọc cần quy trình được chốt riêng.",
-      );
-      await tx.update("bookings", booking.id, { status: "CANCELLED" });
-      await h.audit(tx, user, "Hủy phiếu chưa cọc", "BOOKING", booking.id);
-      return { ok: true };
+
+      if (isRefunded && originalDeposit > 0) {
+        // Khách đổi ý trong 2 tiếng: hoàn cọc tượng trưng, trừ tiền trong tiền tổng (deposit = 0) để đồng bộ báo cáo
+        await tx.update("bookings", booking.id, {
+          status: "CANCELLED",
+          deposit: 0,
+        });
+        await h.audit(
+          tx,
+          user,
+          "Khách hủy đặt phòng trong 2h (hoàn cọc)",
+          "BOOKING",
+          booking.id,
+          `Đã hoàn cọc=${originalDeposit}`,
+        );
+      } else {
+        // Lễ tân hủy (khách không đến / quá hạn / no-show -> giữ cọc) hoặc hủy phiếu chưa cọc
+        const hadDeposit = originalDeposit > 0;
+        await tx.update("bookings", booking.id, { status: "CANCELLED" });
+        await h.audit(
+          tx,
+          user,
+          hadDeposit
+            ? "Hủy đặt phòng do khách không đến (giữ cọc)"
+            : "Hủy phiếu chưa cọc",
+          "BOOKING",
+          booking.id,
+          hadDeposit ? `Cọc không hoàn=${originalDeposit}` : "",
+        );
+      }
+      return {
+        ok: true,
+        refunded: isRefunded,
+        refundAmount: isRefunded ? originalDeposit : 0,
+      };
     });
   },
 });
+module.exports.applyDeposit = applyDeposit;

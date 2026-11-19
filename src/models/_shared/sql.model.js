@@ -12,6 +12,7 @@ const { sql, connect } = require("../../config/db");
 const { ensure } = require("../../core/errors/AppError");
 const dateKeys = new Set([
   "createdAt",
+  "expiresAt",
   "startAt",
   "endAt",
   "holdUntil",
@@ -89,7 +90,15 @@ function client(owner) {
       const r = await new sql.Request(owner).query(
         `SELECT ${select.join(",")} FROM dbo.[${table}]`,
       );
-      return r.recordset.map(convert);
+      const rows = r.recordset.map(convert);
+      if (entity === "types") {
+        const links = await this.listRoomTypeServices();
+        for (const row of rows)
+          row.serviceConfig = links
+            .filter((link) => link.roomTypeId === row.id)
+            .map(({ serviceId, included }) => ({ serviceId, included }));
+      }
+      return rows;
     },
     async find(entity, id) {
       const rows = await this.list(entity);
@@ -109,7 +118,8 @@ function client(owner) {
       const result = await req.query(
         `DECLARE @New TABLE(id nvarchar(100)); INSERT dbo.[${table}] (${cols.join(",")}) OUTPUT inserted.[${pk}] INTO @New VALUES (${vals.join(",")}); SELECT id FROM @New;`,
       );
-      return { ...row, id: result.recordset[0].id };
+      const persisted = Object.fromEntries(data);
+      return { ...persisted, id: result.recordset[0].id };
     },
     async update(entity, id, changes) {
       const [table, pk, fields] = defs[entity];
@@ -127,7 +137,73 @@ function client(owner) {
       );
     },
     async finalizeInvoice(id) {
-      await this.update("invoices", id, { status: "PAID" });
+      const req = new sql.Request(owner);
+      req.input("invoiceId", sql.VarChar(20), String(id));
+      await req.query(`
+        DECLARE @Status varchar(10);
+        SELECT @Status = StatusCode
+        FROM dbo.Invoice WITH (UPDLOCK, HOLDLOCK)
+        WHERE InvoiceId = @invoiceId;
+
+        IF @Status IS NULL
+          THROW 51501, N'Không tìm thấy hóa đơn.', 1;
+        IF @Status NOT IN ('DRAFT', 'PAID')
+          THROW 51502, N'Hóa đơn không thể hoàn tất.', 1;
+
+        UPDATE dbo.Invoice SET StatusCode = 'PAID'
+        WHERE InvoiceId = @invoiceId AND StatusCode = 'DRAFT';
+
+        IF EXISTS (
+          SELECT 1
+          FROM dbo.Invoice i
+          JOIN dbo.Membership m
+            ON m.CustomerId = i.CustomerId AND m.IsActive = 1
+          WHERE i.InvoiceId = @invoiceId
+            AND NOT EXISTS (
+              SELECT 1 FROM dbo.MembershipPointEntry p
+              WHERE p.InvoiceId = i.InvoiceId
+            )
+        )
+          THROW 51503, N'Không thể ghi sổ điểm thành viên.', 1;
+      `);
+    },
+    async listRoomTypeServices(roomTypeId = null) {
+      const req = new sql.Request(owner);
+      let where = "";
+      if (roomTypeId !== null && roomTypeId !== undefined) {
+        req.input("roomTypeId", sql.VarChar(20), String(roomTypeId));
+        where = " WHERE RoomTypeId = @roomTypeId";
+      }
+      const result = await req.query(`
+        SELECT RoomTypeId AS roomTypeId,
+               ServiceId AS serviceId,
+               IsIncluded AS included
+        FROM dbo.RoomTypeService${where}
+        ORDER BY RoomTypeId, ServiceId;
+      `);
+      return result.recordset.map((row) => ({
+        roomTypeId: row.roomTypeId,
+        serviceId: row.serviceId,
+        included: Boolean(row.included),
+      }));
+    },
+    async replaceRoomTypeServices(roomTypeId, rows) {
+      ensure(Array.isArray(rows), "Cấu hình dịch vụ không hợp lệ.");
+      const remove = new sql.Request(owner);
+      remove.input("roomTypeId", sql.VarChar(20), String(roomTypeId));
+      await remove.query(
+        "DELETE dbo.RoomTypeService WHERE RoomTypeId = @roomTypeId;",
+      );
+      for (const row of rows) {
+        const insert = new sql.Request(owner);
+        insert.input("roomTypeId", sql.VarChar(20), String(roomTypeId));
+        insert.input("serviceId", sql.VarChar(20), String(row.serviceId));
+        insert.input("included", sql.Bit, Boolean(row.included));
+        await insert.query(`
+          INSERT dbo.RoomTypeService (RoomTypeId, ServiceId, IsIncluded)
+          VALUES (@roomTypeId, @serviceId, @included);
+        `);
+      }
     },
   };
 }
@@ -139,9 +215,9 @@ module.exports = {
       const version = await pool
         .request()
         .query("SELECT MAX(VersionNo) v FROM dbo.SchemaVersion");
-      if (version.recordset[0].v !== 2)
+      if (version.recordset[0].v !== 5)
         throw new Error(
-          "Schema chưa sẵn sàng. Chạy database/HotelManagerOOAD.sql trong database mới.",
+          "Schema 5 required. For schema 4, run only the BEGIN SEPAY SCHEMA V5 block in database/HotelManagerOOAD.sql.",
         );
       const settings = await pool
         .request()
@@ -160,6 +236,9 @@ module.exports = {
   },
   async find(entity, id) {
     return client(await connect()).find(entity, id);
+  },
+  async listRoomTypeServices(roomTypeId = null) {
+    return client(await connect()).listRoomTypeServices(roomTypeId);
   },
   async transaction(work) {
     const tx = new sql.Transaction(await connect());

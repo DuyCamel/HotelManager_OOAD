@@ -12,6 +12,7 @@ const express = require("express"),
   path = require("node:path");
 const config = require("./config/env");
 const security = require("./core/auth/security");
+const { AppError } = require("./core/errors/AppError");
 module.exports = (repo, models) => {
   const app = express();
   if (config.production)
@@ -29,7 +30,7 @@ module.exports = (repo, models) => {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'"],
           styleSrc: ["'self'"],
-          imgSrc: ["'self'", "data:"],
+          imgSrc: ["'self'", "data:", "https:"],
           upgradeInsecureRequests: null,
         },
       },
@@ -40,6 +41,8 @@ module.exports = (repo, models) => {
   app.use("/assets", express.static(path.join(config.root, "src/public")));
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: false, limit: "1mb" }));
+  // SePay authenticates with its API key, not a browser session/CSRF token.
+  app.use(require("./routes/payments/sepay.routes")(models));
   app.use(
     session({
       name: "hotel.sid",
@@ -70,11 +73,22 @@ module.exports = (repo, models) => {
           .render("errors/index", { message: "Trang không tồn tại." }),
   );
   app.use((err, req, res, next) => {
-    const status = err.status || 400;
-    const message = err.status
-      ? err.message
-      : "Không thể thực hiện. Kiểm tra dữ liệu và kết nối database.";
-    if (!err.status) console.error(err.name, err.number || "", err.message);
+    const reportedStatus = Number(err.status || err.statusCode);
+    const unavailable = err instanceof AppError && reportedStatus === 503;
+    const status =
+      err.code === "LIMIT_FILE_SIZE"
+        ? 413
+        : unavailable || (reportedStatus >= 400 && reportedStatus < 500)
+          ? reportedStatus
+          : 500;
+    const message =
+      status === 413
+        ? "Tệp tải lên vượt quá dung lượng cho phép."
+        : status < 500 || unavailable
+          ? err.message
+          : "Không thể thực hiện. Vui lòng thử lại hoặc liên hệ quản trị viên.";
+    if (status >= 500)
+      console.error(err.name, err.number || err.code || "", err.message);
     req.path.startsWith("/api/")
       ? res.status(status).json({ error: message })
       : res.status(status).render("errors/index", { message });

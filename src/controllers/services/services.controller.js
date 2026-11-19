@@ -4,7 +4,7 @@ const page = require("../../core/http/page"),
 module.exports = (models) => {
   const model = models.services;
   return {
-    index: page("services/index", "catalog", "catalog", {
+    index: page("services/index", "catalog", "services.read", {
       catalogKind: "services",
     }),
     async save(req, res) {

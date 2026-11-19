@@ -22,6 +22,59 @@ async function save(d) {
   await fs.rename(temp, config.demoFile);
 }
 function client(d) {
+  const ensureUnique = (entity, row, current = null) => {
+    if (entity === "paymentIntents" && row.status === "PENDING")
+      ensure(
+        !d.paymentIntents.some(
+          (item) => item !== current && item.status === "PENDING" &&
+            item.kind === row.kind &&
+            (row.kind === "DEPOSIT"
+              ? item.bookingId === row.bookingId
+              : item.stayId === row.stayId),
+        ),
+        "A pending payment intent already exists for this target.",
+        409,
+      );
+    if (entity === "sepayReceipts")
+      ensure(
+        !d.sepayReceipts.some(
+          (item) => item !== current && (
+            (row.paymentId != null && item.paymentId === row.paymentId) ||
+            (row.intentId != null && row.outcome === "APPLIED" &&
+              item.outcome === "APPLIED" && item.intentId === row.intentId)
+          ),
+        ),
+        "This payment or intent already has an applied receipt.",
+        409,
+      );
+  };
+  const paidInvoice = (invoiceId) =>
+    invoiceId &&
+    d.invoices.find(
+      (invoice) =>
+        String(invoice.id) === String(invoiceId) && invoice.status === "PAID",
+    );
+  const ensureMutable = (entity, row, changes = null) => {
+    if (entity === "invoices")
+      ensure(row.status !== "PAID", "Hóa đơn đã thanh toán là bất biến.", 409);
+    if (["lines", "payments", "usage"].includes(entity))
+      ensure(
+        !paidInvoice(row.invoiceId),
+        "Chi tiết của hóa đơn đã thanh toán là bất biến.",
+        409,
+      );
+    ensure(
+      !["points", "audit"].includes(entity),
+      "Sổ điểm và nhật ký chỉ được phép ghi thêm.",
+      409,
+    );
+    if (entity === "cards" && changes && Object.hasOwn(changes, "points"))
+      ensure(
+        Number(changes.points) === Number(row.points),
+        "Điểm chỉ được cập nhật khi hoàn tất hóa đơn.",
+        409,
+      );
+  };
   return {
     async list(k) {
       ensure(defs[k], "Dữ liệu không hợp lệ.");
@@ -33,6 +86,8 @@ function client(d) {
     async insert(k, row) {
       const auto = defs[k][3];
       row = copy(row);
+      if (["lines", "payments", "usage"].includes(k))
+        ensureMutable(k, row);
       if (auto)
         row.id = d[k].reduce((m, x) => Math.max(m, Number(x.id) || 0), 0) + 1;
       ensure(
@@ -40,26 +95,31 @@ function client(d) {
         "Mã đã tồn tại.",
         409,
       );
+      ensureUnique(k, row);
       d[k].push(row);
       return copy(row);
     },
     async update(k, id, changes) {
       const r = d[k].find((x) => String(x.id) === String(id));
       ensure(r, "Không tìm thấy dữ liệu.", 404);
+      ensureMutable(k, r, changes);
+      ensureUnique(k, { ...r, ...changes }, r);
       Object.assign(r, copy(changes));
     },
     async finalizeInvoice(id) {
-      const inv = d.invoices.find((x) => x.id === id);
-      ensure(inv && inv.status === "DRAFT", "Hóa đơn đã hoàn tất.");
-      inv.status = "PAID";
-      const card = d.cards.find(
-        (c) => c.customerId === inv.customerId && c.isActive,
+      const inv = d.invoices.find((x) => String(x.id) === String(id));
+      ensure(
+        inv && ["DRAFT", "PAID"].includes(inv.status),
+        "Hóa đơn không thể hoàn tất.",
       );
-      if (card) {
-        ensure(
-          !d.points.some((p) => p.id === id),
-          "Hóa đơn đã được cộng điểm.",
-        );
+      if (inv.status === "DRAFT") inv.status = "PAID";
+      const stay = d.stays.find((x) => x.id === inv.stayId);
+      const booking = stay && d.bookings.find((x) => x.id === stay.bookingId);
+      const card = d.cards.find(
+        (c) =>
+          c.customerId === (booking?.customerId || inv.customerId) && c.isActive,
+      );
+      if (card && !d.points.some((p) => String(p.id) === String(id))) {
         const points = Math.floor(
           (inv.roomCharge + inv.serviceCharge + inv.surcharge - inv.discount) /
             10000,
@@ -90,6 +150,62 @@ module.exports = {
         state.meta?.version === 2,
         "Dữ liệu demo cũ không tương thích. Đổi DEMO_DATA_FILE để tạo bản mới.",
       );
+      let migrated = false;
+      for (const entity of ["paymentIntents", "sepayReceipts"])
+        if (state[entity] === undefined) {
+          state[entity] = [];
+          migrated = true;
+        } else {
+          ensure(Array.isArray(state[entity]), "Invalid demo payment history.");
+        }
+      for (const type of state.types || [])
+        if (!Array.isArray(type.serviceConfig)) {
+          type.serviceConfig = (state.services || [])
+            .filter((service) => service.isActive)
+            .map((service, index) => ({
+              serviceId: service.id,
+              included: index < 2,
+            }));
+          migrated = true;
+        }
+      const setting = state.settings?.[0] || {};
+      for (const invoice of state.invoices || []) {
+        const customer = state.customers?.find(
+          (item) => item.id === invoice.customerId,
+        );
+        const roomHistory = state.history
+          ?.filter((item) => item.stayId === invoice.stayId)
+          .sort((left, right) =>
+            String(right.fromAt).localeCompare(String(left.fromAt)),
+          )[0];
+        const room = state.rooms?.find(
+          (item) => item.id === roomHistory?.roomId,
+        );
+        const payment = state.payments?.find(
+          (item) => item.invoiceId === invoice.id,
+        );
+        const snapshots = {
+          customerName: invoice.customerName || customer?.name || null,
+          customerIdentity:
+            invoice.customerIdentity || customer?.identityNo || null,
+          customerPhone: invoice.customerPhone || customer?.phone || null,
+          roomName: invoice.roomName || room?.name || null,
+          hotelName: invoice.hotelName || setting.hotelName || null,
+          hotelAddress: invoice.hotelAddress || setting.address || null,
+          hotelHotline: invoice.hotelHotline || setting.hotline || null,
+          paymentReference:
+            invoice.paymentReference || payment?.externalReference || null,
+        };
+        if (
+          Object.entries(snapshots).some(
+            ([key, value]) => invoice[key] !== value,
+          )
+        ) {
+          Object.assign(invoice, snapshots);
+          migrated = true;
+        }
+      }
+      if (migrated) await save(state);
     } catch (e) {
       if (e.code !== "ENOENT") throw e;
       state = await seed();
@@ -118,17 +234,27 @@ module.exports = {
     return copy(state);
   },
   async restore(data) {
+    data = copy(data);
+    if (data?.meta?.version === 2) {
+      data.paymentIntents ??= [];
+      data.sepayReceipts ??= [];
+    }
     ensure(
-      data.meta?.version === 2 &&
+      data?.meta?.version === 2 &&
         Object.keys(defs).every((k) => Array.isArray(data[k])),
       "Bản sao không hợp lệ.",
     );
     ensure(
-      data.accounts.filter((a) => a.role === "ADMIN" && a.isActive).length ===
+      data.accounts.filter((a) => a.role === "MANAGER" && a.isActive).length ===
         1,
-      "Bản sao cần đúng một Admin.",
+      "Bản sao cần đúng một Quản lý.",
     );
     await locked(async () => {
+      ensure(
+        !state.paymentIntents.length && !state.sepayReceipts.length,
+        "Cannot restore demo data after payment intents or receipts exist.",
+        409,
+      );
       await save(data);
       state = copy(data);
     });

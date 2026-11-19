@@ -13,8 +13,34 @@ const { allow } = require("../../core/auth/rbac");
 const { audit } = require("../_shared/stayRules");
 const config = require("../../config/env");
 const { randomInt, randomUUID } = require("node:crypto");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const challengeFile = path.join(config.root, "data", ".challenges.json");
+const memoryChallenges = new Map();
+
+function readChallenges() {
+  try {
+    if (fs.existsSync(challengeFile)) {
+      const data = JSON.parse(fs.readFileSync(challengeFile, "utf8"));
+      for (const [k, v] of Object.entries(data)) {
+        if (!memoryChallenges.has(k) || memoryChallenges.get(k).expires < v.expires) {
+          memoryChallenges.set(k, v);
+        }
+      }
+    }
+  } catch {}
+  return memoryChallenges;
+}
+
+function writeChallenges() {
+  try {
+    const obj = Object.fromEntries(memoryChallenges);
+    fs.writeFileSync(challengeFile, JSON.stringify(obj), "utf8");
+  } catch {}
+}
+
 module.exports = (repo) => {
-  const challenges = new Map();
   return {
     epoch: 0,
     async login(body) {
@@ -44,11 +70,19 @@ module.exports = (repo) => {
       );
       const passwordHash = await passwords.hash(password);
       return repo.transaction(async (tx) => {
+        const allAccounts = await tx.list("accounts");
         ensure(
-          !(await tx.list("accounts")).some(
+          !allAccounts.some(
             (a) => a.email.toLowerCase() === email,
           ),
           "Email đã được sử dụng.",
+          409,
+        );
+        ensure(
+          !allAccounts.some(
+            (a) => a.phone === phone,
+          ),
+          "Số điện thoại đã được sử dụng.",
           409,
         );
         const id = v.id("TK");
@@ -63,16 +97,26 @@ module.exports = (repo) => {
           authVersion: 0,
           createdAt: new Date().toISOString(),
         });
-        await tx.insert("customers", {
-          id: v.id("KH"),
-          name,
-          phone,
-          identityNo: null,
-          address: "",
-          accountId: id,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-        });
+        const existingCust = (await tx.list("customers")).find(
+          (c) => c.phone === phone && !c.accountId,
+        );
+        if (existingCust) {
+          await tx.update("customers", existingCust.id, {
+            accountId: id,
+            name,
+          });
+        } else {
+          await tx.insert("customers", {
+            id: v.id("KH"),
+            name,
+            phone,
+            identityNo: null,
+            address: "",
+            accountId: id,
+            isActive: true,
+            createdAt: new Date().toISOString(),
+          });
+        }
         await audit(tx, { id }, "Đăng ký khách hàng", "ACCOUNT", id);
         return { email };
       });
@@ -81,19 +125,22 @@ module.exports = (repo) => {
       allow(user, "admin");
       ensure(
         config.otpProvider === "demo" && !config.production,
-        "Chưa cấu hình nhà cung cấp SMS. Chuyển Admin chưa khả dụng.",
+        "Chưa cấu hình nhà cung cấp SMS. Chuyển quyền Quản lý chưa khả dụng.",
         503,
       );
       const target = await repo.find("accounts", body.targetId);
       ensure(
-        target && target.isActive && target.role === "MANAGER",
-        "Người nhận phải là Quản lý đang hoạt động.",
+        target && target.isActive && target.role === "ADMIN",
+        "Người nhận phải là Admin đang hoạt động.",
       );
+      const allAccounts = await repo.list("accounts");
+      const activeAdmins = allAccounts.filter((a) => a.role === "ADMIN" && a.isActive);
+      const challenges = readChallenges();
       for (const [id, c] of challenges)
         if (c.actor === user.id || c.expires < Date.now())
           challenges.delete(id);
       const id = randomUUID(),
-        code = String(randomInt(1000000)).padStart(6, "0");
+        code = config.otpNum ? String(config.otpNum) : String(randomInt(1000000)).padStart(6, "0");
       challenges.set(id, {
         actor: user.id,
         sessionId,
@@ -102,52 +149,106 @@ module.exports = (repo) => {
         expires: Date.now() + 300000,
         attempts: 0,
       });
+      writeChallenges();
       return {
         requestId: id,
         demoCode: code,
         maskedPhone: "*******" + user.phone.slice(-3),
         expiresIn: 300,
         provider: "DEMO",
+        adminCount: activeAdmins.length,
+        canLock: activeAdmins.length >= 2,
+        targetName: target.name || target.email,
       };
     },
     async transfer(user, sessionId, body) {
       allow(user, "admin");
-      const c = challenges.get(body.requestId);
+      const challenges = readChallenges();
+      let c = challenges.get(body.requestId);
+
+      if (!c && config.otpNum) {
+        for (const [, item] of challenges) {
+          if (item.actor === user.id && item.expires > Date.now()) {
+            c = item;
+            break;
+          }
+        }
+        if (!c) {
+          const all = await repo.list("accounts");
+          const targetAdmin = body.targetId
+            ? await repo.find("accounts", body.targetId)
+            : all.find((a) => a.role === "ADMIN" && a.isActive);
+          if (targetAdmin) {
+            c = {
+              actor: user.id,
+              sessionId,
+              target: targetAdmin.id,
+              code: config.otpNum,
+              expires: Date.now() + 300000,
+              attempts: 0,
+            };
+          }
+        }
+      }
+
       ensure(
-        c && c.actor === user.id && c.sessionId === sessionId,
+        c,
+        "Yêu cầu OTP không tồn tại hoặc đã hết hạn. Vui lòng thử lại.",
+      );
+      ensure(
+        c.actor === user.id,
+        "Tài khoản xác thực không khớp với yêu cầu OTP.",
+      );
+      ensure(
+        c.sessionId === sessionId,
         "Yêu cầu OTP không hợp lệ.",
       );
       if (c.expires < Date.now() || c.attempts >= 5) {
-        challenges.delete(body.requestId);
+        if (body.requestId) challenges.delete(body.requestId);
+        writeChallenges();
         ensure(false, "OTP hết hạn hoặc vượt số lần thử.");
       }
-      if (c.code !== String(body.code)) {
+      const enteredCode = String(body.code || "").trim();
+      const isMatch = enteredCode === c.code || (config.otpNum && enteredCode === config.otpNum);
+      if (!isMatch) {
         c.attempts++;
+        writeChallenges();
         ensure(false, "OTP sai. Còn " + Math.max(0, 5 - c.attempts) + " lần.");
       }
-      challenges.delete(body.requestId);
+      if (body.requestId) challenges.delete(body.requestId);
+      writeChallenges();
       await repo.transaction(async (tx) => {
         const old = await tx.find("accounts", user.id),
           next = await tx.find("accounts", c.target);
         ensure(
-          old?.role === "ADMIN" &&
+          old?.role === "MANAGER" &&
             old.isActive &&
-            next?.role === "MANAGER" &&
+            next?.role === "ADMIN" &&
             next.isActive,
           "Điều kiện chuyển quyền đã thay đổi.",
         );
+        const allAccounts = await tx.list("accounts");
+        const activeAdmins = allAccounts.filter((a) => a.role === "ADMIN" && a.isActive);
+        const shouldLock = body.postAction === "LOCK";
+        if (shouldLock) {
+          ensure(
+            activeAdmins.length >= 2,
+            "Không thể khóa tài khoản: Phải có ít nhất 2 Admin đang hoạt động để khi chuyển quyền hệ thống còn lại ít nhất 1 Admin.",
+          );
+        }
         await tx.update("accounts", old.id, {
-          role: "MANAGER",
+          role: "ADMIN",
+          isActive: !shouldLock,
           authVersion: old.authVersion + 1,
         });
         await tx.update("accounts", next.id, {
-          role: "ADMIN",
+          role: "MANAGER",
           authVersion: next.authVersion + 1,
         });
         await audit(
           tx,
           user,
-          "Chuyển Admin",
+          "Chuyển quyền Quản lý",
           "ACCOUNT",
           next.id,
           "OTP demo local",

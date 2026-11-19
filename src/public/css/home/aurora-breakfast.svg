@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Aurora garden breakfast</title>
+  <desc id="desc">A colorful breakfast table surrounded by a sunny garden</desc>
+  <defs>
+    <linearGradient id="garden" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#acdabe"/>
+      <stop offset=".52" stop-color="#eaf0c7"/>
+      <stop offset="1" stop-color="#f9d88b"/>
+    </linearGradient>
+    <radialGradient id="light">
+      <stop stop-color="#fffbd0" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#fffbd0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#garden)"/>
+  <circle cx="1235" cy="145" r="300" fill="url(#light)"/>
+  <g opacity=".8">
+    <path d="M0 0h280v900H0z" fill="#4d9070"/>
+    <path d="M1600 0h-235v900h235z" fill="#3b8068"/>
+    <path d="M121 0c105 165 101 363-31 520C-30 332-20 159 121 0z" fill="#74af75"/>
+    <path d="M1465 0c-79 177-71 350 65 518 95-175 73-348-65-518z" fill="#70aa70"/>
+  </g>
+  <g fill="#f8b35f" opacity=".9">
+    <circle cx="190" cy="235" r="35"/><circle cx="1400" cy="285" r="42"/><circle cx="1500" cy="130" r="28"/>
+  </g>
+  <ellipse cx="800" cy="765" rx="550" ry="85" fill="#587461" opacity=".22"/>
+  <ellipse cx="800" cy="560" rx="510" ry="225" fill="#fff8e7"/>
+  <path d="M301 548c138-114 856-114 997 0v101c-161 139-824 139-997 0z" fill="#f6cf91" opacity=".5"/>
+  <path d="M455 704l-44 196m730-196 48 196" stroke="#765845" stroke-width="26"/>
+  <g transform="translate(485 380)">
+    <ellipse cx="188" cy="142" rx="177" ry="88" fill="#e9a95d"/>
+    <ellipse cx="188" cy="130" rx="160" ry="70" fill="#fff9e7"/>
+    <circle cx="128" cy="123" r="43" fill="#f1cd4f"/>
+    <path d="M95 124h66M128 90v67" stroke="#fff5c7" stroke-width="8"/>
+    <path d="M217 96c26-49 89-39 101 7 9 36-17 65-58 66-47 1-65-32-43-73z" fill="#e96f55"/>
+    <path d="M265 70c12-30 22-42 31-58" stroke="#43845e" stroke-width="9"/>
+  </g>
+  <g transform="translate(885 370)">
+    <ellipse cx="145" cy="155" rx="160" ry="89" fill="#e4a45d"/>
+    <ellipse cx="145" cy="142" rx="144" ry="72" fill="#fff8e8"/>
+    <path d="M55 140c43-73 95-83 150-28 17 17 31 39 42 66H58z" fill="#d68549"/>
+    <path d="M82 131c41-47 82-52 123-16" fill="none" stroke="#f3c676" stroke-width="10"/>
+  </g>
+  <g transform="translate(743 272)">
+    <path d="M14 74h117l-13 159H28z" fill="#eef9ee" opacity=".9"/>
+    <path d="M22 92h100l-11 121H33z" fill="#f2a65f"/>
+    <path d="M70 74V0" stroke="#5a8969" stroke-width="9"/>
+    <path d="M71 29c-45-36-76-19-84 11 35 16 63 12 84-11z" fill="#50946b"/>
+    <path d="M70 17c42-35 74-19 84 11-34 19-63 15-84-11z" fill="#73ad76"/>
+  </g>
+  <g transform="translate(1160 415)">
+    <path d="M18 0h105v149H18z" fill="#fff9eb"/>
+    <path d="M124 30c57-7 60 95 4 90" fill="none" stroke="#fff9eb" stroke-width="21"/>
+    <path d="M31 36h80v89H31z" fill="#79523e"/>
+    <path d="M52-29c-24-34 33-37 7-75m46 74c-26-36 27-40 3-75" fill="none" stroke="#fff9e8" stroke-width="9" opacity=".7"/>
+  </g>
+</svg>

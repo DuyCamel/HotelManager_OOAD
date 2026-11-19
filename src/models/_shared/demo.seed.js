@@ -23,19 +23,19 @@ module.exports = async function createDemo() {
   const stamp = now.toISOString();
   const passwordHash = await hash("mk1233456");
   const roles = [
-    ["TK01", "admin", "Admin", "ADMIN"],
-    ["TK02", "manager", "Quản lý", "MANAGER"],
-    ["TK03", "reception", "Lễ tân", "RECEPTIONIST"],
-    ["TK04", "housekeeping", "Buồng phòng", "HOUSEKEEPER"],
+    ["TK01", "admin", "Admin", "ADMIN", "0901234561"],
+    ["TK02", "manager", "Quản lý", "MANAGER", "0901234562"],
+    ["TK03", "reception", "Lễ tân", "RECEPTIONIST", "0901234563"],
+    ["TK04", "housekeeping", "Buồng phòng", "HOUSEKEEPER", "0901234564"],
   ];
-  for (const [id, email, name, role] of roles)
+  for (const [id, email, name, role, phone] of roles)
     d.accounts.push({
       id,
       email: email + "@hotel.test",
       name,
       role,
       passwordHash,
-      phone: "0901234567",
+      phone,
       isActive: true,
       authVersion: 0,
       createdAt: stamp,
@@ -114,12 +114,21 @@ module.exports = async function createDemo() {
             : i >= 41
               ? "DIRTY"
               : "AVAILABLE";
+    const views = [
+      "Hướng phố",
+      "Hướng vườn",
+      "Hướng hồ bơi",
+      "Hướng biển / Sông",
+      "Hướng nội khu",
+      "Tiêu chuẩn (Không cửa sổ)",
+    ];
     d.rooms.push({
       id: "P" + (100 + i),
       name: "Phòng " + (100 + i),
       typeId: kinds[Math.floor((i - 1) / 10)][0],
       status,
       imagePath: null,
+      viewName: views[(i - 1) % views.length],
       note: status === "MAINTENANCE" ? "Đang kiểm tra thiết bị" : "",
     });
     if (status === "DIRTY" || status === "MAINTENANCE")
@@ -153,6 +162,11 @@ module.exports = async function createDemo() {
       isActive: true,
     }),
   );
+  for (const type of d.types)
+    type.serviceConfig = d.services.map((service, index) => ({
+      serviceId: service.id,
+      included: index < 2,
+    }));
   for (let i = 1; i <= 240; i++) {
     const status =
       i <= 150
@@ -198,7 +212,7 @@ module.exports = async function createDemo() {
     const nights = i <= 150 ? 1 + (i % 5) : i > 230 ? 3 : 2;
     const startAt = day(offset),
       endAt = day(offset + nights, 5);
-    const roomCharge = type.dailyPrice * nights;
+    const roomCharge = type.nightlyPrice * nights;
     const deposit = ["PENDING", "CANCELLED"].includes(status)
       ? 0
       : Math.round(roomCharge * 0.3);
@@ -260,14 +274,25 @@ module.exports = async function createDemo() {
           customerId,
           issuedAt: endAt,
           roomCharge,
-          serviceCharge: i % 3 === 0 ? 90000 : 0,
+          serviceCharge: i % 3 === 0 ? 50000 : 0,
           surcharge: st.surcharge,
           discount: i % 15 === 0 ? 50000 : 0,
           deposit,
           status: "PAID",
           method: ["CASH", "TRANSFER", "CARD"][i % 3],
+          customerName: d.customers.find((item) => item.id === customerId)?.name,
+          customerIdentity: d.customers.find((item) => item.id === customerId)
+            ?.identityNo,
+          customerPhone: d.customers.find((item) => item.id === customerId)
+            ?.phone,
+          roomName: room.name,
+          hotelName: "Aurora Hotel",
+          hotelAddress: "TP. Hồ Chí Minh",
+          hotelHotline: "0281234567",
           createdBy: "TK03",
         };
+        inv.paymentReference =
+          inv.method === "CASH" ? null : `DEMO-PAY-${i}`;
         inv.amountDue =
           roomCharge +
           inv.serviceCharge +
@@ -293,8 +318,8 @@ module.exports = async function createDemo() {
             serviceId: "DV001",
             description: "Nước suối",
             quantity: 2,
-            unitPrice: 20000,
-            lineAmount: 40000,
+            unitPrice: 0,
+            lineAmount: 0,
           });
           d.lines.push({
             id: d.lines.length + 1,
@@ -358,7 +383,17 @@ module.exports = async function createDemo() {
         stayId: stay.id,
         serviceId,
         quantity,
-        unitPrice: d.services.find((s) => s.id === serviceId).price,
+        unitPrice:
+          d.types
+            .find(
+              (type) =>
+                type.id ===
+                d.rooms.find((room) => room.id === stay.roomId)?.typeId,
+            )
+            ?.serviceConfig.find((item) => item.serviceId === serviceId)
+            ?.included === true
+            ? 0
+            : d.services.find((s) => s.id === serviceId).price,
         usedAt: stamp,
         recordedBy: "TK03",
         isVoided: false,
@@ -373,7 +408,7 @@ module.exports = async function createDemo() {
       stayId: sample.id,
       serviceId: "DV001",
       quantity: 1,
-      unitPrice: 20000,
+      unitPrice: 0,
       usedAt: stamp,
       recordedBy: "TK03",
       isVoided: true,

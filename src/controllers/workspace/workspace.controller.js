@@ -3,6 +3,7 @@ const page = require("../../core/http/page"),
   { ensure } = require("../../core/errors/AppError");
 module.exports = (models) => ({
   index(req, res) {
+    if (req.user.role === "MANAGER") return res.redirect("/app/accounts");
     res.redirect(
       req.user.role === "CUSTOMER"
         ? "/app/search"

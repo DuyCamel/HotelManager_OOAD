@@ -1,0 +1,48 @@
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs/promises");
+const os = require("node:os");
+const path = require("node:path");
+
+test("real demo adapter migrates old data/backups and persists webhook deduplication across reload", async (t) => {
+  const config = require("../../config/env");
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "hotel-sepay-test-"));
+  const originalFile = config.demoFile;
+  config.demoFile = path.join(directory, "demo.json");
+  t.after(async () => {
+    config.demoFile = originalFile;
+    await fs.rm(directory, { recursive: true, force: true });
+  });
+  const legacy = await require("../_shared/demo.seed")();
+  delete legacy.paymentIntents;
+  delete legacy.sepayReceipts;
+  await fs.writeFile(config.demoFile, JSON.stringify(legacy));
+  const repo = require("../_shared/demo.model");
+  await repo.init();
+  assert.equal((await repo.list("paymentIntents")).length, 0);
+  assert.equal((await repo.list("bookings")).length, legacy.bookings.length);
+  await repo.restore(legacy);
+  assert.equal(legacy.paymentIntents, undefined, "restore must not mutate caller data");
+  const staff = legacy.accounts.find((a) => a.role === "ADMIN");
+  const booking = legacy.bookings.find((b) => b.status === "PENDING" && Date.parse(b.holdUntil) > Date.now());
+  assert.ok(booking);
+  const sepay = { apiKey: "demo-test-only-".repeat(4), bankId: "MSB", accountNo: "1234567890", accountName: "TEST HOTEL" };
+  const createPayments = require("./payment.model");
+  const payments = createPayments(repo, sepay);
+  const intent = await payments.create(staff, { kind: "DEPOSIT", bookingId: booking.id, amount: Math.min(300000, booking.roomCharge) });
+  const payload = { id: 101, content: intent.id, transferAmount: intent.amount, transferType: "in", accountNumber: sepay.accountNo };
+  const auth = "Apikey " + sepay.apiKey;
+  const originalLedgerSize = (await repo.list("payments")).length;
+  await Promise.all([payments.receive(payload, auth), payments.receive(payload, auth)]);
+  assert.equal((await repo.list("payments")).length, originalLedgerSize + 1);
+  assert.equal((await repo.list("sepayReceipts")).length, 1);
+  const saved = JSON.parse(await fs.readFile(config.demoFile, "utf8"));
+  assert.equal(saved.paymentIntents[0].status, "APPLIED");
+  assert.equal(saved.sepayReceipts[0].id, "101");
+  await assert.rejects(repo.restore(legacy), { status: 409 });
+  delete require.cache[require.resolve("../_shared/demo.model")];
+  const reloaded = require("../_shared/demo.model");
+  await reloaded.init();
+  assert.equal((await createPayments(reloaded, sepay).receive(payload, auth)).duplicate, true);
+  assert.equal((await reloaded.list("payments")).length, originalLedgerSize + 1);
+});

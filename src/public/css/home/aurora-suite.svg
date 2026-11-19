@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Aurora sunlit suite</title>
+  <desc id="desc">A calm premium suite with a large window, soft bed and warm morning light</desc>
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#f5efd8"/>
+      <stop offset="1" stop-color="#cedfc9"/>
+    </linearGradient>
+    <linearGradient id="window" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#80ccd3"/>
+      <stop offset=".58" stop-color="#d6edcf"/>
+      <stop offset="1" stop-color="#f7d695"/>
+    </linearGradient>
+    <linearGradient id="duvet" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#fffdf1"/>
+      <stop offset="1" stop-color="#e6dfca"/>
+    </linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="20"/></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#wall)"/>
+  <path d="M0 0h510v900H0z" fill="#e6b98d" opacity=".58"/>
+  <rect x="895" y="75" width="620" height="535" fill="url(#window)" stroke="#fff8e8" stroke-width="24"/>
+  <path d="M1205 86v513M907 329h595" stroke="#fff8e8" stroke-width="17"/>
+  <circle cx="1362" cy="180" r="70" fill="#fff0a0"/>
+  <path d="M911 535c138-95 257-96 358 0 75-68 154-71 239-5v67H911z" fill="#5d9b79" opacity=".78"/>
+  <path d="M0 690h1600v210H0z" fill="#c99e70"/>
+  <path d="M0 704h1600" stroke="#f8d8ab" stroke-width="9" opacity=".5"/>
+  <path d="M135 510h1010v257H135z" fill="#827762"/>
+  <path d="M171 454h908c52 0 93 42 93 93v175H78V547c0-52 42-93 93-93z" fill="#718d7e"/>
+  <path d="M101 565c187-50 366-60 550-15 188-48 357-35 499 16v185H101z" fill="url(#duvet)"/>
+  <path d="M550 560c40 65 55 124 45 188" fill="none" stroke="#d1c5a8" stroke-width="6" opacity=".7"/>
+  <rect x="190" y="489" width="224" height="117" rx="38" fill="#fffdf3" transform="rotate(-3 190 489)"/>
+  <rect x="449" y="480" width="225" height="120" rx="38" fill="#f8f3df" transform="rotate(2 449 480)"/>
+  <rect x="795" y="505" width="224" height="111" rx="34" fill="#d98d69" transform="rotate(3 795 505)"/>
+  <g transform="translate(1250 565)">
+    <ellipse cx="88" cy="137" rx="95" ry="25" fill="#8b684f"/>
+    <path d="M13 124h150l-18 34H30z" fill="#f8d69c"/>
+    <path d="M83 155v119" stroke="#67513d" stroke-width="16"/>
+    <path d="M35 271h105" stroke="#67513d" stroke-width="12"/>
+    <rect x="56" y="65" width="58" height="62" rx="7" fill="#f4ebe0"/>
+    <path d="M67 65V13h38v52" fill="#f3bd55"/>
+    <ellipse cx="86" cy="13" rx="49" ry="16" fill="#ffd879"/>
+  </g>
+  <g transform="translate(25 294)">
+    <rect x="58" y="142" width="21" height="185" fill="#715743"/>
+    <path d="M68 0c-92 64-79 157 0 190 76-38 83-132 0-190z" fill="#4c9073"/>
+    <path d="M-8 85c-41 65 4 119 76 104-2-62-31-101-76-104z" fill="#79ae7d"/>
+  </g>
+  <path d="M1032 395l-98 259h322z" fill="#ffe4a1" opacity=".27" filter="url(#soft)"/>
+</svg>

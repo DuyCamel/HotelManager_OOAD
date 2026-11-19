@@ -1,13 +1,9 @@
-/** Tự sinh từ điển dữ liệu từ đúng 2 script DDL; không cần SQL Server hoặc .env. */
+/** Tự sinh từ điển dữ liệu từ schema ứng dụng chuẩn; không cần SQL Server hoặc .env. */
 const fs = require("node:fs"),
   path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const schema = fs.readFileSync(
-  path.join(root, "database/01_schema.sql"),
-  "utf8",
-);
-const logic = fs.readFileSync(
-  path.join(root, "database/02_programmability.sql"),
+  path.join(root, "database/HotelManagerOOAD.sql"),
   "utf8",
 );
 // Đọc cặp ngoặc và phân tách cột ở depth=0, giữ dấu phẩy trong decimal/computed/default.
@@ -61,7 +57,10 @@ while ((match = pattern.exec(schema))) {
   const end = balanced(schema, pattern.lastIndex);
   const entries = split(schema.slice(pattern.lastIndex, end));
   const columns = entries
-    .filter((x) => !/^CONSTRAINT|^PRIMARY|^FOREIGN|^UNIQUE|^CHECK/i.test(x))
+    .filter(
+      (x) =>
+        !/^(?:CONSTRAINT|PRIMARY|FOREIGN|UNIQUE|CHECK)\b/i.test(x),
+    )
     .map((line) => {
       const m = line.match(/^\[?(\w+)\]?\s+([\s\S]+)/);
       if (!m) throw Error("Không đọc được cột: " + line);
@@ -86,16 +85,16 @@ while ((match = pattern.exec(schema))) {
 }
 if (!tables.length) throw Error("Không tìm thấy bảng.");
 const foreign = [
-  ...logic.matchAll(
+  ...schema.matchAll(
     /ALTER TABLE dbo\.\[?(\w+)\]?\s+WITH CHECK ADD CONSTRAINT \[?(\w+)\]?\s+FOREIGN KEY\s*\(([^)]+)\)\s+REFERENCES dbo\.\[?(\w+)\]?\s*\(([^)]+)\)/gi,
   ),
-  ...logic.matchAll(
+  ...schema.matchAll(
     /ALTER TABLE dbo\.\[?(\w+)\]?\s+ADD CONSTRAINT \[?(\w+)\]?\s+FOREIGN KEY\s*\(([^)]+)\)\s+REFERENCES dbo\.\[?(\w+)\]?\s*\(([^)]+)\)/gi,
   ),
 ];
 const esc = (s) => String(s).replace(/\|/g, "\\|");
 let md =
-  "# Từ điển dữ liệu\n\nTự sinh bằng `npm run docs:dictionary` từ `database/01_schema.sql` và `database/02_programmability.sql`. Không sửa tay file này. `npm run docs:check` kiểm tra tài liệu có còn khớp DDL. Đây là metadata đọc từ script, không phải chứng nhận đã chạy SQL Server.\n\n";
+  "# Từ điển dữ liệu\n\nTự sinh bằng `npm run docs:dictionary` từ schema ứng dụng chuẩn `database/HotelManagerOOAD.sql`. Không sửa tay file này. `npm run docs:check` kiểm tra tài liệu có còn khớp DDL. Đây là metadata đọc từ script, không phải chứng nhận đã chạy SQL Server.\n\n";
 md += `Tổng: **${tables.length} bảng, ${tables.reduce((n, t) => n + t.columns.length, 0)} cột, ${foreign.length} khóa ngoại**.\n\n`;
 md +=
   "## Danh sách bảng\n\n| Bảng | Số cột |\n|---|---:|\n" +
@@ -116,7 +115,7 @@ for (const table of tables) {
 md +=
   "## Trigger, view, function và procedure\n\n| Loại | Object |\n|---|---|\n" +
   [
-    ...logic.matchAll(
+    ...schema.matchAll(
       /CREATE OR ALTER\s+(TRIGGER|VIEW|FUNCTION|PROCEDURE)\s+dbo\.(\w+)/gi,
     ),
   ]

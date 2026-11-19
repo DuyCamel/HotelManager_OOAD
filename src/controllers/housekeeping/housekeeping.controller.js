@@ -52,5 +52,13 @@ module.exports = (models) => {
     async clean(req, res) {
       await respond(req, res, () => model.clean(req.user, req.body));
     },
+    async resolve(req, res) {
+      await respond(req, res, () =>
+        model.resolveMaintenance(req.user, req.body),
+      );
+    },
+    async urge(req, res) {
+      await respond(req, res, () => model.urge(req.user, req.body));
+    },
   };
 };

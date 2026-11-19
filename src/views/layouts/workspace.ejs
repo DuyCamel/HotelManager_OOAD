@@ -7,11 +7,13 @@ Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
 -->
 <!-- Khung workspace và menu lọc theo vai trò; nội dung do core/workspace.js dựng. -->
 <%- include('../partials/head') %>
-<body class="workspace" data-initial-page="<%= initialPage %>" data-catalog-kind="<%= catalogKind || '' %>" data-role="<%= user.role %>" data-user-id="<%= user.id %>">
+<link rel="stylesheet" href="/assets/css/workspace/comfortable.css" media="screen">
+<body class="workspace role-<%= user.role.toLowerCase() %>" data-initial-page="<%= initialPage %>" data-catalog-kind="<%= catalogKind || '' %>" data-role="<%= user.role %>" data-user-id="<%= user.id %>" data-time-zone="<%= config.timeZone %>">
+<a class="skip-link" href="#workspace-content">Chuyển đến nội dung chính</a>
 <%- include('../partials/sidebar') %>
 <div class="workspace-main">
 <%- include('../partials/topbar') %>
-<main class="content">
+<main class="content" id="workspace-content" tabindex="-1">
 <div class="page-heading">
 <div>
 <%- include(headingView) %></div>
@@ -22,13 +24,14 @@ Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
 <p class="empty">Đang tải dữ liệu…</p>
 </div>
 </main>
-<footer class="workspace-footer">© 2026 Aurora Hotel <span id="today">
+<footer class="workspace-footer"><span>© 2026 Aurora Hotel</span><span id="today">
 </span>
 </footer>
 </div>
 <%- include('../partials/editor') %>
 <div id="toast" role="status">
 </div>
+<script type="module" src="/assets/js/core/payments.js"></script>
 <script type="module" src="/assets/js/core/workspace.js">
 </script>
 </body>

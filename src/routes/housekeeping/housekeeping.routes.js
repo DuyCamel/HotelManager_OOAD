@@ -8,6 +8,8 @@ module.exports = (models) => {
     );
   router.get("/app/housekeeping", required, c.index);
   router.post("/api/action/room.clean", required, c.clean);
+  router.post("/api/action/room.resolve", required, c.resolve);
+  router.post("/api/action/room.urge", required, c.urge);
   router.post(
     "/api/damage",
     required,

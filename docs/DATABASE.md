@@ -2,87 +2,104 @@
 
 ## 1. Chuẩn bị
 
-Cài SQL Server **2019+** (Developer hoặc Express), SQL Server Management Studio (SSMS), Node.js 22+. SSMS là công cụ quản trị; chỉ cài SSMS chưa có database engine. Mỗi người dùng SQL Server local riêng hoặc dùng server nhóm có cấp tài khoản riêng.
+Cài SQL Server **2019+** (Developer hoặc Express), SQL Server Management Studio (SSMS) và Node.js 22+. SSMS chỉ là công cụ quản trị; máy vẫn cần SQL Server Database Engine.
 
-Trong **SQL Server Configuration Manager → SQL Server Network Configuration → Protocols for instance của bạn**, bật TCP/IP. Với local đơn giản, đặt IPAll TCP Port `1433`, xóa giá trị TCP Dynamic Ports, rồi restart dịch vụ SQL Server. Nếu dùng cổng khác, ghi đúng `DB_PORT`. Chỉ mở firewall nếu máy khác thực sự cần truy cập.
+Bật TCP/IP cho instance trong SQL Server Configuration Manager. Với local đơn giản, đặt cổng IPAll cố định `1433`, xóa TCP Dynamic Ports và restart dịch vụ. Bật SQL Server and Windows Authentication mode nếu ứng dụng dùng SQL Login.
 
-Bật **SQL Server and Windows Authentication mode** trong Server Properties → Security, restart dịch vụ. Web hiện kết nối bằng SQL Login; Windows Authentication của SSMS không tự chuyển sang ứng dụng Node.js.
+## 2. Cài schema ứng dụng
 
-## 2. Tạo database và dữ liệu
+Đăng nhập SSMS, tạo database nếu chưa có (tên tùy chọn, ví dụ `HotelManagerOOAD`) và chọn đúng database trên thanh công cụ của cửa sổ query. Dùng tài khoản có quyền cài/nâng cấp schema, mở và Execute **toàn bộ một file duy nhất**:
 
-Đăng nhập SSMS bằng tài khoản quản trị. Mở và Execute **toàn bộ file**, lần lượt:
+```text
+database/HotelManagerOOAD.sql
+```
 
-| File | Trách nhiệm |
-|---|---|
-| `database/01_schema.sql` | Tạo `HotelManager_OOAD_Web`, 23 bảng, khóa chính và giá trị mặc định. |
-| `database/02_programmability.sql` | FK, CHECK, UNIQUE/index, trigger, view/function/procedure bảo vệ dữ liệu. |
-| `database/03_seed.sql` | Chèn dữ liệu giả liên kết nhiều bảng, đối chiếu tổng hóa đơn và điểm. |
+Đây là schema ứng dụng chuẩn. Script chạy trong database đang chọn, không tạo hoặc tự chuyển database; nó từ chối cài vào database hệ thống (`master`, `tempdb`, `model`, `msdb`). Script tạo hoặc nâng cấp bảng, FK/CHECK/index/view/trigger, nạp dữ liệu phát triển khi database trống và cuối cùng công bố `SchemaVersion = 5`. Version 5 bổ sung `PaymentIntent` và `SepayReceipt` để lưu yêu cầu thu tiền và chống ghi nhận trùng webhook SePay. Database đang ở version 4 có thể chỉ chạy khối `-- BEGIN SEPAY SCHEMA V5` đến `-- END SEPAY SCHEMA V5` bằng SSMS sau khi chọn đúng database, không cần chạy lại phần dữ liệu mẫu.
 
-Mỗi file có `USE` và `GO`; chạy bằng **SSMS**, không dán cả file vào một `mssql.Request.query()` vì `GO` là batch separator của công cụ. Chỉ chạy tiếp khi không còn lỗi đỏ. 002 công bố schema **11** sau khi cài các object. 001/003 nhận diện phiên bản/seed và không xóa dữ liệu khi chạy lại. Không dùng ba file này để migrate database Java cũ: database web có tên riêng và email-only schema.
+Script có `GO`, vì vậy chạy bằng SSMS hoặc `sqlcmd`; không gửi nguyên file qua `mssql.Request.query()` vì `GO` là batch separator của công cụ. Với `sqlcmd` cổ điển trên Windows, dùng `-d` để chọn database đã tạo và chỉ định UTF-8 để giữ đúng dữ liệu tiếng Việt:
 
-Muốn đổi tên database: sửa cùng tên ở cả ba file và `.env`, không sửa chỉ một chỗ. Không có đường dẫn MDF/LDF cố định theo máy.
+```powershell
+sqlcmd -S "localhost,1433" -E -C -d "TenDatabaseCuaBan" -f 65001 -b -i "database\HotelManagerOOAD.sql"
+```
 
-Dữ liệu SQL: **104 tài khoản, 120 khách, 6 loại phòng, 60 phòng, 20 dịch vụ, 24 đợt giá lễ, 80 thẻ, 240 phiếu đặt, 160 phiếu thuê, 150 hóa đơn, 21 dòng dịch vụ đang lưu trú/đã hủy**, các dòng hóa đơn/thanh toán/sổ điểm/dọn phòng/nhật ký liên quan. Các phiếu gồm lịch sử, đã hủy, chờ cọc còn hạn/quá hạn, đã xác nhận và đang lưu trú. Thời điểm seed dựa trên UTC hiện tại; khi app khởi động sẽ tự hủy phiếu chưa cọc đã quá hạn nên số trạng thái thay đổi.
+Thay `TenDatabaseCuaBan` bằng đúng tên database của bạn; script SQL không đọc `.env`. Thay `-E` bằng `-U hotel_dev` khi dùng SQL Login để `sqlcmd` hỏi mật khẩu; không ghi mật khẩu vào script hoặc lịch sử lệnh dùng chung. Có thể chạy lại script: DDL và version là idempotent, seed có marker `realistic_3roomtypes_v2`, không drop database và không xóa dữ liệu. Nếu database đã có tài khoản nhưng chưa có marker, script giữ dữ liệu và bỏ qua seed.
 
-## 3. Tạo SQL Login cho ứng dụng
+Seed gồm 20 tài khoản, 20 khách, 3 loại phòng, 20 phòng, 20 dịch vụ, giá lễ một lần, đặt/thuê/đổi phòng, sử dụng dịch vụ, hóa đơn/thanh toán/sổ điểm, buồng phòng, backup metadata và audit liên kết. Mọi thông tin đều giả.
 
-Trong SSMS: Security → Logins → New Login → SQL Server authentication. Tạo ví dụ `hotel_dev` với **mật khẩu riêng của bạn**. User Mapping → chọn `HotelManager_OOAD_Web`, chọn `db_datareader`, `db_datawriter`. Không dùng `sa` trong `.env`. Nếu chính sách mật khẩu bắt đổi ở lần đăng nhập đầu, đổi trước khi chạy ứng dụng.
+Các thay đổi đến version 4 gồm actor attribution, chủ sở hữu và snapshot hóa đơn, liên kết dịch vụ với hóa đơn, ảnh/gallery/view/tiện nghi từng phòng, lịch giá lễ `ONE_OFF`/`ANNUAL`, QR thanh toán riêng, current room lấy từ dòng `StayRoomHistory` đang mở và finalization hóa đơn/cộng điểm nguyên tử. `Stay` không có `RoomId` cạnh tranh.
 
-Nếu muốn sử dụng view/procedure trực tiếp ngoài web, cấp EXECUTE cho đúng procedure theo nhu cầu. Web hiện dùng repository tham số hóa và transaction; không cần quyền `db_owner` hoặc CREATE DATABASE lúc chạy.
+## 3. Tạo SQL Login
 
-## 4. Tạo .env trên máy mình
+Trong SSMS: Security → Logins → New Login → SQL Server authentication. Tạo ví dụ `hotel_dev` với mật khẩu riêng. User Mapping → chọn database đã cài schema, cấp `db_datareader`, `db_datawriter`. Không dùng `sa` trong `.env`.
 
-Ở terminal thư mục chứa `package.json`:
+Trigger finalization cần quyền ghi vào `Invoice`, `ServiceUsage`, `MembershipPointEntry` và `Membership`; `db_datawriter` đáp ứng môi trường phát triển. Web không cần `db_owner` hoặc quyền tạo database khi chạy.
+
+## 4. Cấu hình ứng dụng
+
+Ở thư mục chứa `package.json`:
 
 ```bash
 npm install
 npm run setup
 ```
 
-Mở `.env` đã tạo, giữ `SESSION_SECRET` ngẫu nhiên, sửa phần database:
+Mở `.env` đã tạo, giữ `SESSION_SECRET` ngẫu nhiên và sửa:
 
 ```dotenv
 DB_MODE=sqlserver
 DB_SERVER=localhost
 DB_PORT=1433
-DB_NAME=HotelManager_OOAD_Web
+DB_NAME=HotelManagerOOAD
 DB_USER=hotel_dev
 DB_PASSWORD=mat_khau_SQL_Login_cua_ban
 DB_ENCRYPT=true
 DB_TRUST_SERVER_CERTIFICATE=true
 ```
 
-`DB_SERVER` là **tên máy/IP**, không phải đường dẫn `.mdf`, không phải tên database, không phải URL `http://`. Với `localhost\SQLEXPRESS`, cách cấu hình được hỗ trợ ở đây là bật TCP/IP cho instance SQLEXPRESS, chọn cổng cố định, rồi dùng `DB_SERVER=localhost` và đúng `DB_PORT`; không phụ thuộc SQL Browser hoặc dynamic port.
+`DB_NAME` có thể là tên bất kỳ nhưng phải trùng database đã cài schema ở bước 2; `HotelManagerOOAD` chỉ là tên mặc định khi không đặt biến này. Đổi tên database không thay thế bước cài schema: database vẫn cần đủ bảng/cột, bao gồm `dbo.SchemaVersion`, và schema version 5.
 
-`DB_TRUST_SERVER_CERTIFICATE=true` dành cho chứng chỉ tự ký ở máy phát triển. Khi có server/chứng chỉ chuẩn, dùng `false`. Mật khẩu có ký tự `#`, khoảng trắng hoặc ký tự đặc biệt nên đặt trong dấu nháy theo cú pháp dotenv. Không gửi `.env` cho cả nhóm và không commit lên Git.
+`DB_SERVER` là tên máy/IP, không phải đường dẫn `.mdf`, tên database hay URL. Với SQLEXPRESS, bật TCP/IP, chọn cổng cố định rồi dùng `DB_SERVER=localhost` và đúng `DB_PORT`.
+
+`DB_TRUST_SERVER_CERTIFICATE=true` chỉ phù hợp chứng chỉ tự ký khi phát triển. Không commit `.env`.
 
 ```bash
 npm run db:check
 npm run dev
 ```
 
-Kết quả mong đợi: `Kết nối thành công. Chế độ: sqlserver | Phòng: 60`. Sau đó vào http://localhost:3000. Muốn quay về dữ liệu demo, đổi `DB_MODE=demo` và khởi động lại. Lỗi SQL **không tự chuyển** sang dữ liệu demo.
+`db:check` kiểm tra database được cấu hình bằng `DB_NAME`, không ép tên `HotelManagerOOAD`. Lệnh từ chối demo mode, database thực tế không khớp cấu hình, sai SchemaVersion, cột/object version 5 bị thiếu hoặc cấu hình khách sạn không đúng. Seed chuẩn cho kết quả tương tự (tên database thay đổi theo cấu hình):
 
-## 5. Sao lưu và khôi phục
+```text
+Kết nối thành công. Database: HotelManagerOOAD | Schema: 5 | Phòng: 20 | FK tin cậy: 41
+```
 
-**Demo:** Admin tạo JSON trong `data/backups/`, khôi phục bản trong lịch sử. Khôi phục thay toàn bộ dữ liệu JSON, đăng xuất mọi phiên. Sao lưu này không chứa ảnh trong `data/uploads/`. Copy cả thư mục ảnh riêng nếu muốn phục hồi báo hỏng đầy đủ. Tệp sao lưu cũ có thể không còn xuất hiện trong lịch sử sau khôi phục vì lịch sử cũng được phục hồi về thời điểm cũ.
+Sau đó mở http://localhost:3000. SQL lỗi không tự fallback sang demo.
 
-**SQL:** cấu hình `SQL_BACKUP_DIR` là thư mục **trên máy chạy SQL Server**, ví dụ `D:/HotelBackups`. Tạo thư mục trước, cấp quyền ghi cho **SQL Server service account**. Tài khoản SQL của ứng dụng cần quyền BACKUP DATABASE (ví dụ `db_backupoperator`) nếu muốn dùng nút sao lưu. App dùng `COPY_ONLY, CHECKSUM`; không nhận đường dẫn tùy ý từ trình duyệt. File `.bak` nằm trên SQL Server, không tải về máy browser.
+## 5. Tính toàn vẹn chính
 
-Khôi phục SQL thực hiện **ngoại tuyến**: dừng Node.js, dùng SSMS → Databases → Restore Database → Device → chọn `.bak`, kiểm tra tên database đích và thông tin backup trước khi xác nhận. Có thể cần đóng các kết nối hiện có trong Options. Sau khi hoàn tất, kiểm tra user mapping rồi chạy `npm run db:check` và khởi động web. UI không chạy lệnh RESTORE trên pool đang hoạt động. SQL `.bak` không chứa ảnh đính kèm; sao lưu thêm `data/uploads/` riêng.
+- `Account.RoleCode` chỉ nhận `MANAGER`, `ADMIN`, `RECEPTIONIST`, `HOUSEKEEPER`, `CUSTOMER`. Quản lý (`MANAGER`) phụ trách tài khoản, phân quyền và quản trị dữ liệu hệ thống; Admin (`ADMIN`) quản trị vận hành theo ma trận quyền của ứng dụng.
+- `Invoice.CustomerId` phải khớp quan hệ `Invoice → Stay → Booking → Customer`.
+- Mỗi stay và mỗi room chỉ có tối đa một dòng `StayRoomHistory` đang mở; view `v_StayCurrentRoom` chiếu `CurrentRoomId` từ dòng đó.
+- Chuyển hóa đơn `DRAFT → PAID` yêu cầu settlement bằng `AmountDue`, tự liên kết usage chưa hủy và cộng điểm đúng một lần theo khóa chính `MembershipPointEntry.InvoiceId`.
+- Hóa đơn đã trả, dòng hóa đơn, settlement, usage đã billed, point ledger và audit được bảo vệ khỏi sửa/xóa trực tiếp.
+- Giá lễ một lần dùng `StartDate`/`EndDate`; giá hằng năm dùng `StartMonthDay`/`EndMonthDay` dạng `MM-DD`. Khoảng hằng năm qua giao thừa có start lớn hơn end.
 
-## 6. Lỗi thường gặp
+## 6. Sao lưu
+
+**Demo:** Quản lý tạo/khôi phục JSON trong `data/backups/`; bản sao cần đúng một Quản lý đang hoạt động. Sao lưu JSON không chứa ảnh trong `data/uploads/`. Khi đã có yêu cầu/giao dịch SePay, restore demo bị chặn để không xóa lịch sử chống nhận trùng; không dùng demo làm sổ thu tiền thật.
+
+**SQL:** đặt `SQL_BACKUP_DIR` là thư mục trên máy chạy SQL Server, cấp quyền ghi cho SQL Server service account và quyền backup cho SQL Login nếu dùng nút sao lưu. App dùng `COPY_ONLY, CHECKSUM`. Khôi phục SQL thực hiện ngoại tuyến bằng SSMS, sau đó chạy lại `database/HotelManagerOOAD.sql` và `npm run db:check`. File `.bak` không chứa ảnh đính kèm.
+
+## 7. Lỗi thường gặp
 
 | Lỗi | Cách xử lý |
 |---|---|
-| `ECONNREFUSED` / timeout | Kiểm tra dịch vụ SQL đang chạy, bật TCP/IP, cổng cố định, restart SQL, `DB_SERVER`, `DB_PORT` và firewall. |
-| Login failed | Kiểm tra SQL Authentication, login/password, login có bị disable hoặc bắt đổi password. |
-| Cannot open database | Chạy 001/002/003 đúng instance, kiểm tra tên database và User Mapping. |
-| Certificate chain / self-signed | Local đặt `DB_TRUST_SERVER_CERTIFICATE=true`; server thật cài chứng chỉ tin cậy. |
-| Schema không đúng | Cần schema web 10/11; chạy lại 002 và xử lý hết lỗi trước, không trỏ vào DB Java. |
-| Invalid column AuthVersion / object ServiceUsage | Đang dùng database cũ hoặc chạy thiếu 001 của web. |
-| Permission denied BACKUP | Cấp quyền backup cho SQL Login và quyền thư mục cho SQL service account. |
-| EADDRINUSE khi chạy web | Dừng server cũ hoặc đổi PORT trong `.env`. |
-| Đã sửa `.env` mà chưa đổi chế độ | Dừng và khởi động lại Node.js. |
+| `ECONNREFUSED` / timeout | Kiểm tra dịch vụ SQL, TCP/IP, cổng, `DB_SERVER`, `DB_PORT` và firewall. |
+| Login failed | Kiểm tra SQL Authentication, login/password và User Mapping vào database trong `DB_NAME`. |
+| Cannot open database | Kiểm tra database trong `DB_NAME` đã tồn tại đúng instance và login có quyền truy cập. |
+| SchemaVersion/cột/object thiếu | Chọn đúng database trong `DB_NAME`, chạy toàn bộ script và xử lý lỗi SQL đầu tiên; version chỉ lên 5 khi script hoàn tất. |
+| Certificate chain | Local có thể dùng `DB_TRUST_SERVER_CERTIFICATE=true`; server thật cần chứng chỉ tin cậy. |
+| Seed không được nạp | Database đã có dữ liệu; script cố ý không trộn seed vào dữ liệu hiện hữu. |
+| Permission denied BACKUP | Cấp quyền backup cho login và quyền thư mục cho SQL Server service account. |
 
-Chỉ gửi thông báo lỗi đã che mật khẩu khi nhờ người khác hỗ trợ. Chạy ba script/đăng nhập thật trên SQL Server là bước nghiệm thu bắt buộc trước khi dùng chế độ SQL cho buổi bảo vệ.
+`npm run docs:check` chỉ kiểm tra dictionary khớp SQL đã commit. Nghiệm thu cuối vẫn phải chạy script và `npm run db:check` trên SQL Server thật.

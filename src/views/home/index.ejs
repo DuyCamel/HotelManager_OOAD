@@ -1,137 +1,200 @@
-<!--
-TASK-BAN-GIAO (TODO) | Phụ trách: TV2 | Mã việc: B5, C2
-Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
-Hoàn thiện tìm phòng/chi tiết/giữ chỗ và thông báo giá–cọc; dùng ảnh/tiện ích TV3 cung cấp.
-Giữ form chỉ chọn ngày và giờ trả 12:00; không tự đổi sang datetime hoặc khôi phục quy tắc cũ.
-Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
--->
-<!-- Trang giới thiệu khách sạn, tìm phòng và danh mục dịch vụ công khai. -->
 <%- include('../partials/head') %>
-<body class="public-page">
-<header class="public-nav">
-<a class="brand" href="/">A<span>✦</span> AURORA</a>
-<nav>
-<a href="#rooms">Phòng & trải nghiệm</a>
-<a href="#services">Dịch vụ</a>
-<a href="#contact">Liên hệ</a>
-</nav>
-<a class="outline" href="<%= user?'/portal':'/login' %>">
-<%= user?'Không gian của tôi':'Đăng nhập' %> ↗</a>
-</header>
-<main>
-<section class="hero">
-<div>
-<span class="eyebrow">A SENSE OF BELONGING</span>
-<h1>Nơi bạn tìm thấy<br>nhịp sống <em>riêng.</em>
-</h1>
-<p>Một không gian bình yên giữa thành phố.<br>Chạm đến những trải nghiệm giản đơn và tinh tế.</p>
-<a class="primary" href="#rooms">Khám phá kỳ nghỉ ↘</a>
-<div class="hero-detail">01 / 03 <span>COMFORT. CULTURE. CONNECTION.</span>
-</div>
-</div>
-<div class="hero-art">
-<div class="arch-art">
-<div class="sun">
-</div>
-<div class="mountain">
-</div>
-<div class="water">
-</div>
-</div>
-<span>AURORA<br>EST. 2026</span>
-</div>
-</section>
-<section class="search-strip">
-<form id="public-search">
-<label>Ngày nhận phòng<input name="startAt" type="date" required>
-</label>
-<label>Ngày trả phòng (12:00)<input name="endAt" type="date" required>
-</label>
-<label>Khách<input name="guests" type="number" value="2" min="1" max="20" required>
-</label>
-<button class="primary">Tìm phòng trống ↗</button>
-</form>
-<p class="form-message" role="status">
-</p>
-</section>
-<section class="section" id="rooms">
-<div class="section-title">
-<div>
-<span class="eyebrow">YOUR PERSONAL RETREAT</span>
-<h2>Chọn không gian của bạn</h2>
-</div>
-<p class="muted">Mỗi căn phòng, một cảm hứng.<br>Giá theo ngày · đã gồm tiện nghi cơ bản.</p>
-</div>
-<div id="search-results">
-</div>
-<div class="room-types">
-<% data.types.forEach((t,i)=>{ %>
-<article class="type-card">
-<div class="room-illustration variant-<%= i%3 %>">
-<div class="window">
-</div>
-<div class="bed">
-</div>
-<span>0<%= i+1 %>
-</span>
-</div>
-<div class="type-body">
-<span class="eyebrow">AURORA COLLECTION</span>
-<h3>
-<%= t.name %>
-</h3>
-<p class="muted">
-<%= t.capacity %> khách · <%= t.beds %> giường · <%= t.amenities %>
-</p>
-<div class="price">
-<strong>
-<%= Number(t.dailyPrice).toLocaleString('vi-VN') %> ₫</strong>
-<span>/ ngày</span>
-<a href="/login">Đặt phòng ↗</a>
-</div>
-</div>
-</article>
-<% }) %>
-</div>
-</section>
-<section class="service-section section" id="services">
-<span class="eyebrow">THOUGHTFUL IN EVERY DETAIL</span>
-<h2>Những điều nhỏ bé,<br>tạo nên kỳ nghỉ trọn vẹn.</h2>
-<div class="service-grid">
-<% data.services.slice(0,8).forEach((s,i)=>{ %>
-<article>
-<span class="service-icon">
-<%= ['◈','☕','✦','♧'][i%4] %>
-</span>
-<h3>
-<%= s.name %>
-</h3>
-<p>
-<%= s.description %>
-</p>
-<small>
-<%= Number(s.price).toLocaleString('vi-VN') %> ₫ / <%= s.unit %>
-</small>
-</article>
-<% }) %>
-</div>
-</section>
-</main>
-<footer id="contact">
-<a class="brand" href="/">A<span>✦</span> AURORA</a>
-<div>
-<strong>
-<%= data.hotel.hotelName %>
-</strong>
-<p>
-<%= data.hotel.address %>
-</p>
-<p>Hotline: <%= data.hotel.hotline %>
-</p>
-</div>
-<small>Đồ án HotelManager OOAD · Web 2.0<% if(config.mode==='demo'){ %>
-<br>Đang dùng dữ liệu demo cục bộ.<% } %>
-</small>
-</footer>
+<body
+  class="public-page"
+  data-experience-target="<%= experienceHref %>"
+  data-customer="<%= viewer?.isCustomer ? 'true' : 'false' %>"
+>
+  <a class="skip-link" href="#main-content">Chuyển đến nội dung chính</a>
+
+  <header class="public-nav">
+    <a class="brand" href="/" aria-label="Aurora Hotel, trang chủ">
+      A<span aria-hidden="true">✦</span> AURORA
+    </a>
+    <nav aria-label="Điều hướng chính">
+      <a href="#stay">Kỳ nghỉ</a>
+      <a href="#contact">Liên hệ</a>
+    </nav>
+    <div class="nav-account">
+      <% if (viewer) { %>
+        <span class="login-state">
+          <i aria-hidden="true"></i>
+          Xin chào, <strong><%= viewer.name %></strong>
+        </span>
+      <% } %>
+      <a class="outline" href="<%= experienceHref %>"><%= experienceLabel %></a>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section
+      class="cinematic"
+      aria-roledescription="carousel"
+      aria-label="Câu chuyện Aurora"
+      data-carousel
+    >
+      <div class="cinematic-viewport" id="aurora-carousel">
+        <div class="cinematic-track is-at-0" data-carousel-track>
+          <a
+            class="cinematic-slide scene-arrival"
+            href="<%= experienceHref %>"
+            data-carousel-slide
+            aria-label="Khám phá kỳ nghỉ tại Aurora"
+          >
+            <span class="slide-shade" aria-hidden="true"></span>
+            <span class="slide-copy">
+              <span class="slide-number">01 / 03</span>
+              <span class="eyebrow">A BRIGHTER WAY TO STAY</span>
+              <h1>Thành phố ngoài cửa.<br><em>Bình yên ở bên trong.</em></h1>
+              <span class="slide-description">
+                Ánh sáng, khoảng thở và sự chăm sóc vừa đủ cho những ngày bạn
+                muốn sống chậm hơn.
+              </span>
+              <span class="slide-cta">
+                <%= viewer?.isCustomer ? 'Chọn căn phòng của bạn' : viewer ? 'Mở không gian Aurora' : 'Đăng nhập để đặt kỳ nghỉ' %>
+              </span>
+            </span>
+          </a>
+
+          <a
+            class="cinematic-slide scene-suite"
+            href="<%= experienceHref %>"
+            data-carousel-slide
+            aria-label="Khám phá những căn phòng đầy ánh sáng"
+            aria-hidden="true"
+            tabindex="-1"
+          >
+            <span class="slide-shade" aria-hidden="true"></span>
+            <span class="slide-copy slide-copy-right">
+              <span class="slide-number">02 / 03</span>
+              <span class="eyebrow">ROOM TO EXHALE</span>
+              <h2>Buổi sáng dịu dàng.<br><em>Đêm thật sâu.</em></h2>
+              <span class="slide-description">
+                Chất liệu tự nhiên, ga giường mát và những ô cửa đón trọn nắng
+                sớm.
+              </span>
+              <span class="slide-cta">
+                Xem phòng trống
+              </span>
+            </span>
+          </a>
+
+          <a
+            class="cinematic-slide scene-pool"
+            href="<%= experienceHref %>"
+            data-carousel-slide
+            aria-label="Khám phá nhịp sống thư thái tại Aurora"
+            aria-hidden="true"
+            tabindex="-1"
+          >
+            <span class="slide-shade" aria-hidden="true"></span>
+            <span class="slide-copy">
+              <span class="slide-number">03 / 03</span>
+              <span class="eyebrow">YOUR CITY, SOFTENED</span>
+              <h2>Chạm vào nắng.<br><em>Trôi qua chiều.</em></h2>
+              <span class="slide-description">
+                Một hồ bơi trên cao, bữa sáng thảnh thơi và thành phố lấp lánh
+                phía xa.
+              </span>
+              <span class="slide-cta">
+                Bắt đầu hành trình
+              </span>
+            </span>
+          </a>
+        </div>
+      </div>
+
+      <div class="carousel-controls">
+        <button
+          type="button"
+          class="carousel-arrow"
+          data-carousel-prev
+          aria-controls="aurora-carousel"
+          aria-label="Banner trước"
+        >
+          ←
+        </button>
+        <div class="carousel-dots" aria-label="Chọn banner">
+          <button type="button" class="is-active" data-carousel-dot="0" aria-label="Banner 1" aria-current="true"></button>
+          <button type="button" data-carousel-dot="1" aria-label="Banner 2"></button>
+          <button type="button" data-carousel-dot="2" aria-label="Banner 3"></button>
+        </div>
+        <button
+          type="button"
+          class="carousel-arrow"
+          data-carousel-next
+          aria-controls="aurora-carousel"
+          aria-label="Banner tiếp theo"
+        >
+          →
+        </button>
+      </div>
+      <p class="sr-only" aria-live="polite" data-carousel-status>Banner 1 trên 3</p>
+      <span class="carousel-progress" aria-hidden="true"><i></i></span>
+    </section>
+
+    <section class="reservation-wrap" id="stay" aria-labelledby="reservation-title">
+      <div class="reservation-intro">
+        <span class="eyebrow">PLAN YOUR ARRIVAL</span>
+        <h2 id="reservation-title">Kỳ nghỉ của bạn bắt đầu ở đây.</h2>
+      </div>
+      <form id="home-reservation" class="reservation-form" action="<%= experienceHref %>" method="get">
+        <label>
+          Ngày nhận phòng
+          <input name="startAt" type="date" lang="vi-VN" required>
+        </label>
+        <label>
+          Ngày trả phòng
+          <input name="endAt" type="date" lang="vi-VN" required>
+        </label>
+        <label>
+          Số khách
+          <select name="guests" required>
+            <option value="1">1 khách</option>
+            <option value="2" selected>2 khách</option>
+            <option value="3">3 khách</option>
+            <option value="4">4 khách</option>
+            <option value="5">5 khách</option>
+            <option value="6">6 khách</option>
+          </select>
+        </label>
+        <button class="primary" type="submit">
+          Kiểm tra phòng
+        </button>
+        <p class="form-message" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="contact-section" id="contact" aria-labelledby="contact-title">
+      <div class="contact-lead">
+        <span class="eyebrow">COME FIND YOUR LIGHT</span>
+        <h2 id="contact-title">Hẹn gặp bạn<br>tại Aurora.</h2>
+      </div>
+      <div class="contact-details">
+        <div>
+          <span class="contact-label">ĐỊA CHỈ</span>
+          <strong><%= data.hotel.hotelName %></strong>
+          <p><%= data.hotel.address %></p>
+        </div>
+        <div>
+          <span class="contact-label">LIÊN HỆ</span>
+          <a href="<%= data.phoneHref %>"><%= data.hotel.hotline %></a>
+          <p>Đón khách từ <%= data.hotel.checkInTime %> · Trả phòng trước <%= data.hotel.checkOutTime %></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="public-footer">
+    <a class="brand" href="/" aria-label="Aurora Hotel, trang chủ">
+      A<span aria-hidden="true">✦</span> AURORA
+    </a>
+    <p>Light-filled stays · Thoughtful hospitality</p>
+    <small>
+      © 2026 Aurora Hotel
+      <% if (config.mode === 'demo') { %> · Trải nghiệm với dữ liệu demo cục bộ<% } %>
+    </small>
+  </footer>
+
+  <script type="module" src="/assets/js/modules/bookings/search.js"></script>
 </body>
 </html>

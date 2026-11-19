@@ -1,4 +1,4 @@
-/** Hoàn tất command đổi mật khẩu/khôi phục/chuyển Admin và quản lý vòng đời session. */
+/** Hoàn tất command đổi mật khẩu/khôi phục/chuyển quyền Quản lý và quản lý vòng đời session. */
 module.exports = async (req, res, operation, { transfer = false } = {}) => {
   const result = await operation();
   if (result?.logoutAll) global.hotelEpoch++;

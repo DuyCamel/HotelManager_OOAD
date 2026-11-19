@@ -10,6 +10,7 @@ const v = require("../../core/validation/fields");
 const { ensure } = require("../../core/errors/AppError");
 const { allow } = require("../../core/auth/rbac");
 const h = require("../_shared/stayRules");
+const fields = require("./customer.validation");
 
 module.exports = (repo) => ({
   async save(user, b) {
@@ -17,41 +18,97 @@ module.exports = (repo) => ({
     return repo.transaction(async (tx) => {
       const old = b.id ? await tx.find("customers", b.id) : null;
       ensure(!b.id || old?.isActive, "Hồ sơ không tồn tại hoặc đã lưu trữ.");
-      const identityNo = v.text(b.identityNo, "CCCD/Hộ chiếu", 30);
+      const values = fields.profile(b, old || {});
+      const customers = await tx.list("customers");
       ensure(
-        !(await tx.list("customers")).some(
-          (c) => c.id !== old?.id && c.identityNo === identityNo,
-        ),
+        !values.identityNo ||
+          !customers.some(
+            (c) =>
+              c.id !== old?.id &&
+              fields.identityKey(c.identityNo) ===
+                fields.identityKey(values.identityNo),
+          ),
         "Giấy tờ đã thuộc hồ sơ khác.",
         409,
       );
       const row = {
         id: old?.id || v.id("KH"),
-        name: v.text(b.name, "Họ tên", 120),
-        phone: v.phone(b.phone),
-        identityNo,
-        address: String(b.address || "").slice(0, 512),
+        ...values,
         accountId: old?.accountId || null,
         isActive: true,
         createdAt: old?.createdAt || new Date().toISOString(),
       };
       if (old) await tx.update("customers", old.id, row);
       else await tx.insert("customers", row);
+      if (row.accountId) {
+        const account = await tx.find("accounts", row.accountId);
+        ensure(
+          account?.role === "CUSTOMER",
+          "Liên kết tài khoản khách không hợp lệ.",
+          409,
+        );
+        ensure(
+          !(await tx.list("accounts")).some(
+            (x) => x.id !== account.id && x.phone === row.phone,
+          ),
+          "Số điện thoại đã thuộc tài khoản khác.",
+          409,
+        );
+        await tx.update("accounts", account.id, {
+          name: row.name,
+          phone: row.phone,
+        });
+      }
       await h.audit(tx, user, "Lưu hồ sơ", "CUSTOMER", row.id);
       return row;
     });
   },
   async archive(user, b) {
-    allow(user, "catalog");
+    allow(user, "customers");
     return repo.transaction(async (tx) => {
-      const c = await tx.find("customers", b.id);
-      ensure(c, "Không có hồ sơ.", 404);
+      const id = v.text(b.id, "Mã khách hàng", 20);
+      const c = await tx.find("customers", id);
+      ensure(c?.isActive, "Hồ sơ không tồn tại hoặc đã lưu trữ.", 404);
+      const bookings = (await tx.list("bookings")).filter(
+        (x) => x.customerId === c.id,
+      );
       ensure(
-        !(await tx.list("bookings")).some(
-          (x) => x.customerId === c.id && h.active(x),
-        ),
+        !bookings.some(h.active),
         "Khách còn giao dịch dang dở.",
       );
+      const bookingIds = new Set(bookings.map((x) => x.id));
+      const stays = (await tx.list("stays")).filter((x) =>
+        bookingIds.has(x.bookingId),
+      );
+      ensure(
+        !stays.some((x) => !x.checkOutAt),
+        "Khách đang lưu trú, không thể lưu trữ hồ sơ.",
+      );
+      const stayIds = new Set(stays.map((x) => x.id));
+      ensure(
+        !(await tx.list("invoices")).some(
+          (x) =>
+            (x.customerId === c.id || stayIds.has(x.stayId)) &&
+            x.status !== "PAID",
+        ),
+        "Khách còn hóa đơn chưa hoàn tất.",
+      );
+      for (const card of (await tx.list("cards")).filter(
+        (x) => x.customerId === c.id && x.isActive,
+      ))
+        await tx.update("cards", card.id, { isActive: false });
+      if (c.accountId) {
+        const account = await tx.find("accounts", c.accountId);
+        ensure(
+          account?.role === "CUSTOMER",
+          "Liên kết tài khoản khách không hợp lệ.",
+          409,
+        );
+        await tx.update("accounts", account.id, {
+          isActive: false,
+          authVersion: Number(account.authVersion || 0) + 1,
+        });
+      }
       await tx.update("customers", c.id, { isActive: false });
       await h.audit(tx, user, "Lưu trữ hồ sơ", "CUSTOMER", c.id);
       return { ok: true };

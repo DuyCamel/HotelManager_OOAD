@@ -1,0 +1,887 @@
+/* Shared readability pass for every workspace screen. */
+.workspace {
+  font-size: var(--text-base);
+}
+
+.workspace .sidebar {
+  width: 288px;
+}
+
+.workspace .workspace-main {
+  margin-left: 288px;
+}
+
+.workspace :is(#page-content, .panel, .profile-summary, .profile-shell > *, .membership-staff > *) {
+  min-width: 0;
+}
+
+.workspace .table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.workspace .sidebar .nav-item {
+  min-height: var(--control-height);
+  padding: 10px 14px;
+  font-size: var(--text-base);
+}
+
+.workspace .sidebar-caption {
+  font-size: var(--text-xs);
+}
+
+.workspace :is(.sidebar-bottom, .sidebar-bottom small, .nav-index,
+  .user-menu small, .workspace-footer, .page-heading .eyebrow) {
+  font-size: var(--text-xs);
+}
+
+.workspace :is(.sidebar .nav-item.utility, .breadcrumb, .breadcrumb b,
+  .user-menu strong, .logout-button) {
+  font-size: var(--text-sm);
+}
+
+.workspace #menu-toggle {
+  min-height: var(--control-height);
+  font-size: var(--text-sm);
+}
+
+.workspace .content {
+  padding: 32px clamp(16px, 3vw, 40px) 48px;
+}
+
+.workspace .page-heading h1 {
+  font-size: var(--heading-lg);
+}
+
+.workspace .page-heading p {
+  font-size: 16px;
+}
+
+.workspace button,
+.workspace input,
+.workspace select,
+.workspace textarea {
+  font-size: var(--text-base);
+}
+
+.workspace button {
+  min-height: 36px;
+}
+
+.workspace :is(label, legend) {
+  font-size: var(--text-sm);
+}
+
+.workspace button.small,
+.workspace .page-heading .small {
+  min-height: 36px;
+  padding: 8px 14px;
+  font-size: var(--text-base);
+}
+
+.workspace .primary {
+  min-height: var(--control-height);
+  padding: 10px 20px;
+}
+
+.workspace input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+.workspace select,
+.workspace textarea {
+  min-height: var(--control-height);
+  padding: 10px 12px;
+}
+
+.workspace table {
+  font-size: 16px;
+}
+
+.workspace th {
+  padding: 18px 22px;
+  font-size: 15px;
+}
+
+.workspace td {
+  padding: 21px 22px;
+}
+
+.workspace td strong {
+  font-size: 16px;
+}
+
+.workspace td small {
+  font-size: 14px;
+}
+
+.workspace .badge {
+  padding: 7px 13px;
+  font-size: 14px;
+}
+
+.workspace .pagination,
+.workspace .table-toolbar > span {
+  font-size: 15px;
+}
+
+.workspace .operation-filter {
+  font-size: 14px;
+}
+
+.workspace .operation-filter input,
+.workspace .operation-filter select {
+  min-height: var(--control-height);
+  font-size: 16px;
+}
+
+.workspace :is(.operation-summary small, .operation-section-head p, .operation-board-head p,
+  .hold-pill, .channel-pill, .hold-state, .lookup-match, .availability-status,
+  .week-corner, .week-day, .week-day span, .week-room strong, .week-room span,
+  .week-cell span, .service-catalog-card p, .service-catalog-card small,
+  .readonly-banner, .readonly-banner b, .readonly-pill, .payment-option small,
+  .receipt-confirmation, .bank-qr-placeholder, .manual-payment-warning,
+  .dialog-error, .damage-history p) {
+  font-size: var(--text-xs);
+}
+
+.workspace .operation-room-card.is-overdue::after {
+  font-size: var(--text-xs);
+}
+
+.workspace :is(.operation-section-head h2, .service-catalog-card h3,
+  .invoice-detail-grid h3, .bank-payment-details h3) {
+  font-size: var(--heading-sm);
+}
+
+.workspace :is(.service-catalog-card strong, .payment-option strong,
+  .bank-qr-placeholder strong, .invoice-id-button) {
+  font-size: var(--text-base);
+}
+
+.workspace :is(.operation-table, .bill-table) {
+  font-size: var(--text-sm);
+}
+
+.workspace :is(.operation-table th, .bill-table th, .bill-table td,
+  .bill-totals p, .bill-totals h3) {
+  font-size: var(--text-xs);
+}
+
+.workspace .catalog-tabs a,
+.workspace .catalog-readonly {
+  font-size: 16px;
+}
+
+.workspace .room-state-legend span {
+  font-size: var(--text-xs);
+}
+
+.workspace .operation-room-grid {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.workspace .operation-room-card {
+  min-height: 140px;
+  padding: 18px;
+  border-radius: 14px;
+}
+
+.workspace .operation-room-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+}
+
+.workspace .operation-room-top strong {
+  min-width: 0;
+  overflow: visible;
+  font-size: 17px;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.workspace .operation-state {
+  min-height: 26px;
+  padding: 4px 9px;
+  font-size: var(--text-xs);
+}
+
+.workspace .operation-room-type,
+.workspace .operation-room-card small {
+  font-size: 13px;
+}
+
+.workspace .operation-room-type {
+  margin: 11px 0 13px;
+}
+
+.workspace .room-tile {
+  min-height: 150px;
+  padding: 19px;
+}
+
+.workspace .room-tile .room-number {
+  font-size: 20px;
+}
+
+.workspace .room-tile > span:nth-child(2),
+.workspace .room-tile small {
+  font-size: var(--text-xs);
+}
+
+.room-operations-dialog {
+  width: min(1080px, 94vw);
+  max-height: 92vh;
+  padding: var(--panel-padding);
+}
+
+.room-operations-dialog .dialog-head {
+  margin-bottom: 26px;
+}
+
+.room-operations-dialog .dialog-head h2 {
+  margin-bottom: 10px;
+  font-size: var(--heading-md);
+}
+
+.room-operations-dialog .dialog-head p {
+  font-size: 14px;
+}
+
+.room-operations-dialog .room-detail-layout {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: var(--panel-gap);
+}
+
+.room-operations-dialog .room-photo-frame {
+  min-height: 380px;
+  border-radius: 16px;
+}
+
+.room-operations-dialog .room-photo-frame img {
+  min-height: 380px;
+}
+
+.room-operations-dialog .room-photo-fallback {
+  gap: 12px;
+  padding: 32px;
+}
+
+.room-operations-dialog .room-photo-fallback span {
+  font-size: 58px;
+}
+
+.room-operations-dialog .room-photo-fallback strong {
+  font-size: 16px;
+}
+
+.room-operations-dialog .room-photo-fallback small {
+  max-width: 290px;
+  font-size: 13px;
+}
+
+.room-operations-dialog .room-detail-layout section h3,
+.room-operations-dialog .damage-history h3 {
+  margin-bottom: 16px;
+  font-size: var(--heading-sm);
+}
+
+.room-operations-dialog .operation-detail-list > div {
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 18px;
+  padding: 12px 0;
+}
+
+.room-operations-dialog .operation-detail-list dt {
+  font-size: var(--text-sm);
+}
+
+.room-operations-dialog .operation-detail-list dd {
+  font-size: 14px;
+}
+
+.room-operations-dialog .dialog-actions {
+  gap: 14px;
+  margin-top: 28px;
+  padding-top: 22px;
+}
+
+.room-operations-dialog .dialog-actions button {
+  min-height: var(--control-height);
+  padding: 10px 18px;
+  font-size: var(--text-base);
+}
+
+.workspace .admin-card,
+.workspace .customer-detail {
+  padding: var(--panel-padding);
+}
+
+.workspace .admin-card > .table-scroll {
+  margin-inline: calc(-1 * var(--panel-padding));
+}
+
+.workspace .admin-card.audit-table {
+  padding: 0;
+  overflow: hidden;
+}
+
+.workspace .admin-card.audit-table > .table-scroll {
+  margin-inline: 0;
+}
+
+.workspace .admin-card-heading h2,
+.workspace .admin-card-heading h3 {
+  font-size: var(--heading-sm);
+}
+
+.workspace .admin-card-heading > span,
+.workspace .admin-kpis span,
+.workspace .admin-kpis small,
+.workspace .admin-filter-result span,
+.workspace .admin-self {
+  font-size: 13px;
+}
+
+.workspace .admin-kpis {
+  gap: 18px;
+}
+
+.workspace .admin-kpis article {
+  min-height: 0;
+  padding: var(--panel-padding);
+}
+
+.workspace .admin-kpis strong {
+  font-size: 30px;
+}
+
+.workspace .admin-link-button {
+  min-height: 36px;
+  padding: 8px 14px;
+  font-size: var(--text-base);
+}
+
+.workspace .customer-search-toolbar {
+  padding: var(--panel-padding);
+}
+
+.workspace .customer-search-toolbar > label,
+.workspace .customer-list-name small,
+.workspace .customer-list-contact {
+  font-size: 13px;
+}
+
+.workspace .customer-list-item > button {
+  padding: 19px 22px;
+}
+
+.workspace .customer-search-toolbar > label {
+  font-size: var(--text-sm);
+}
+
+.workspace :is(.customer-membership-summary small, .customer-membership-summary span, .customer-history-item span,
+  .customer-history-item small,
+  .customer-section-heading span, .membership-section-title span, .profile-section-title span,
+  .membership-detail-header span, .profile-role, .profile-identity-card p,
+  .profile-no-customer, .profile-links a small, .membership-card header > span,
+  .membership-card-points span, .membership-card dt, .membership-card footer small,
+  .membership-card footer, .membership-status-note, .membership-ledger-list small,
+  .membership-card-link small) {
+  font-size: var(--text-xs);
+}
+
+.workspace :is(.customer-membership-empty p, .membership-ledger-state,
+  .profile-links a strong, .membership-card dd, .membership-explainer p,
+  .membership-ledger-list b) {
+  font-size: var(--text-sm);
+}
+
+.workspace :is(.membership-detail-header h3, .membership-detail-ledger h4,
+  .profile-section-title, .membership-section-title) {
+  font-size: var(--heading-sm);
+}
+
+.workspace .membership-card-points strong {
+  font-size: 36px;
+}
+
+.workspace .customer-list-name strong {
+  font-size: 16px;
+}
+
+.workspace .customer-detail-header h2 {
+  font-size: var(--heading-md);
+}
+
+.workspace .customer-code {
+  font-size: var(--text-xs);
+}
+
+.workspace .customer-facts > div,
+.workspace .profile-facts > div,
+.workspace .membership-detail-facts > div {
+  padding: 17px 19px;
+}
+
+.workspace .customer-facts dt,
+.workspace .profile-facts dt,
+.workspace .membership-detail-facts dt {
+  font-size: var(--text-sm);
+}
+
+.workspace .customer-facts dd,
+.workspace .profile-facts dd,
+.workspace .membership-detail-facts dd {
+  font-size: 15px;
+}
+
+.workspace .customer-mini-stats > div,
+.workspace .profile-stats > div {
+  padding: 19px;
+}
+
+.workspace .customer-mini-stats strong,
+.workspace .profile-stats strong {
+  font-size: 30px;
+}
+
+.workspace .customer-mini-stats span,
+.workspace .profile-stats span {
+  font-size: var(--text-xs);
+}
+
+.workspace .catalog-room-grid {
+  gap: var(--panel-gap);
+}
+
+.workspace .catalog-room-card {
+  min-height: 0;
+}
+
+.workspace .catalog-intro h2 {
+  font-size: var(--heading-lg);
+}
+
+.workspace :is(.catalog-intro > div > span, .catalog-count span, .gallery-count,
+  .catalog-card-heading small, .catalog-card-heading > strong span, .catalog-note, .catalog-type-line,
+  .catalog-tags span, .schedule-pill, .catalog-image-editor small,
+  .catalog-preview-strip figcaption, .service-matrix > p) {
+  font-size: var(--text-xs);
+}
+
+.workspace .catalog-card-heading h3 {
+  font-size: var(--heading-sm);
+}
+
+.workspace .catalog-card-heading > strong {
+  font-size: var(--text-lg);
+}
+
+.workspace .catalog-intro p,
+.workspace .catalog-toolbar {
+  font-size: 14px;
+}
+
+.workspace .service-matrix label {
+  padding: 14px;
+}
+
+.workspace .service-matrix label strong {
+  font-size: 14px;
+}
+
+.workspace .service-matrix label small {
+  font-size: var(--text-xs);
+}
+
+/* Let card counts follow the available width without oversized empty panels. */
+.workspace .dashboard-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--panel-gap);
+}
+
+.workspace .admin-kpis,
+.workspace .admin-dimensions,
+.workspace .admin-permissions {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: var(--panel-gap);
+}
+
+.workspace .dashboard-metric {
+  min-height: 0;
+  padding: var(--panel-padding);
+}
+
+.workspace .dashboard-metric > strong {
+  font-size: 34px;
+}
+
+.workspace .metric-topline {
+  font-size: 13px;
+}
+
+.workspace .dashboard-metric > small {
+  font-size: var(--text-xs);
+}
+
+.workspace .dashboard-metric > span,
+.workspace .dashboard-metric small,
+.workspace .dashboard-panel,
+.workspace .dashboard-panel p,
+.workspace .dashboard-panel li {
+  font-size: 15px;
+}
+
+.workspace .dashboard-panel {
+  border-radius: 20px;
+}
+
+.workspace :is(.hero-copy h2, .service-directory-intro h2) {
+  font-size: var(--heading-lg);
+}
+
+.workspace :is(.panel-heading h3, .dashboard-section-heading h2,
+  .service-directory-card h2, .admin-section-heading h2) {
+  font-size: var(--heading-sm);
+}
+
+.workspace :is(.section-kicker, .dashboard-date, .hero-copy p, .occupancy-orbit small,
+  .occupancy-copy span, .occupancy-copy small, .dashboard-panel footer .small,
+  .flow-index, .day-flow-item small, .dashboard-empty span, .dashboard-footnote,
+  .service-directory-summary span, .service-directory-summary small,
+  .service-card-topline span, .service-card-topline b, .service-directory-card p,
+  .service-directory-card footer span) {
+  font-size: var(--text-xs);
+}
+
+.workspace :is(.dashboard-hero .hero-actions .small, .occupancy-copy strong,
+  .day-flow-item b, .dashboard-empty b, .service-directory-intro p) {
+  font-size: var(--text-sm);
+}
+
+.workspace :is(.occupancy-orbit b, .service-directory-summary strong,
+  .operation-summary strong) {
+  font-size: 30px;
+}
+
+.workspace .dashboard-panel .panel-heading {
+  min-height: 0;
+  padding: var(--panel-padding);
+  flex-wrap: wrap;
+}
+
+.workspace .dashboard-panel .section-kicker {
+  font-size: var(--text-xs);
+}
+
+.workspace .dashboard-panel .source-chip {
+  min-height: 30px;
+  padding: 6px 10px;
+  font-size: var(--text-xs);
+}
+
+.workspace .dashboard-panel .alert-totals span {
+  padding: 14px 16px;
+  font-size: var(--text-xs);
+}
+
+.workspace .dashboard-panel .alert-totals b {
+  font-size: 16px;
+}
+
+.workspace .dashboard-panel .alert-row {
+  padding: 16px 24px;
+}
+
+.workspace .dashboard-panel .alert-title strong {
+  font-size: 14px;
+}
+
+.workspace .dashboard-panel .alert-title span {
+  padding: 4px 8px;
+  font-size: var(--text-xs);
+}
+
+.workspace .dashboard-panel .alert-row p,
+.workspace .dashboard-panel .operation-list small,
+.workspace .dashboard-panel .arrival-list small {
+  font-size: var(--text-xs);
+}
+
+.workspace .dashboard-panel .alert-row small,
+.workspace .dashboard-panel .operation-list time {
+  font-size: var(--text-xs);
+}
+
+.workspace .dashboard-panel .operation-list {
+  padding: 6px 24px 14px;
+}
+
+.workspace .dashboard-panel .operation-list li {
+  min-height: 72px;
+}
+
+.workspace .dashboard-panel .operation-list strong,
+.workspace .dashboard-panel .arrival-list strong {
+  font-size: var(--text-sm);
+}
+
+.workspace .dashboard-panel .arrival-list {
+  padding: 6px 24px 14px;
+}
+
+.workspace .dashboard-panel .arrival-list li {
+  grid-template-columns: 42px minmax(0, 1fr) minmax(145px, auto);
+  min-height: 76px;
+}
+
+.workspace .dashboard-panel .arrival-monogram {
+  width: 38px;
+  height: 38px;
+  font-size: 13px;
+}
+
+.workspace .dashboard-panel .arrival-time b {
+  font-size: var(--text-sm);
+}
+
+.workspace .dashboard-panel .arrival-time span {
+  font-size: var(--text-xs);
+}
+
+.workspace .admin-dimension-card,
+.workspace .admin-permission-card {
+  min-height: 0;
+  padding: var(--panel-padding);
+}
+
+.workspace .admin-dimension-card .admin-card-heading h3,
+.workspace .admin-permission-card h3 {
+  font-size: var(--heading-sm);
+}
+
+.workspace .admin-dimension-list > div,
+.workspace .admin-dimension-list small,
+.workspace .admin-permission-card p {
+  font-size: 14px;
+}
+
+.workspace .admin-report-grid {
+  gap: 24px;
+}
+
+.workspace :is(.admin-section-heading p, .admin-callout p, .admin-loading,
+  .admin-bar-row, .occupancy-list span, .settings-hero p,
+  .admin-definition-list dt, .qr-placeholder) {
+  font-size: var(--text-sm);
+}
+
+.workspace .admin-kpis .text-stat {
+  font-size: var(--heading-sm);
+}
+
+.workspace .backup-capability p,
+.workspace .backup-note,
+.workspace .admin-path,
+.workspace .admin-data-note {
+  font-size: 14px;
+}
+
+.workspace .admin-card .operation-table,
+.workspace .admin-card .admin-table {
+  font-size: 15px;
+}
+
+.workspace .admin-card .operation-table th,
+.workspace .admin-card .admin-table th {
+  padding: 18px 22px;
+  font-size: 14px;
+}
+
+.workspace .admin-card .operation-table td,
+.workspace .admin-card .admin-table td {
+  padding: 20px 22px;
+  font-size: 15px;
+}
+
+.workspace .admin-card .operation-table td small,
+.workspace .admin-card .admin-table td small {
+  font-size: 13px;
+}
+
+.workspace .backup-admin table {
+  font-size: 16px;
+}
+
+.workspace .backup-admin .admin-kpis article {
+  min-height: 0;
+  padding: var(--panel-padding);
+}
+
+.workspace .backup-admin .admin-kpis strong {
+  font-size: 30px;
+}
+
+.workspace .backup-admin .admin-kpis span,
+.workspace .backup-admin .admin-kpis small {
+  font-size: 14px;
+}
+
+.workspace .backup-admin th {
+  padding: 20px 24px;
+  font-size: 15px;
+}
+
+.workspace .backup-admin td {
+  min-height: 76px;
+  padding: 24px;
+  font-size: 16px;
+}
+
+.workspace .backup-admin td strong {
+  font-size: 17px;
+}
+
+.workspace .backup-admin td small,
+.workspace .backup-admin .admin-path {
+  font-size: 14px;
+}
+
+.workspace .payment-instructions img,
+.workspace .qr-placeholder {
+  width: 190px;
+  height: 190px;
+}
+
+.workspace .payment-instructions {
+  grid-template-columns: 1fr 210px;
+}
+
+.workspace .payment-instructions figcaption {
+  font-size: 13px;
+}
+
+@media (max-width: 1000px) {
+  .room-operations-dialog .room-detail-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 850px) {
+  .workspace .profile-identity-card {
+    position: relative;
+    top: auto;
+  }
+}
+
+@media (max-width: 920px) {
+  .workspace .sidebar {
+    width: 252px;
+  }
+
+  .workspace .sidebar:not(.open) {
+    visibility: hidden;
+    pointer-events: none;
+    box-shadow: none;
+  }
+
+  .workspace .workspace-main {
+    margin-left: 0;
+  }
+
+  .workspace .content {
+    padding-inline: 26px;
+  }
+}
+
+@media (max-width: 680px) {
+  .workspace .sidebar {
+    width: 272px;
+  }
+
+  .workspace .workspace-main {
+    margin-left: 0;
+  }
+
+  .workspace .content {
+    padding: 26px 16px 48px;
+  }
+
+  .workspace .page-heading h1 {
+    font-size: var(--heading-lg);
+  }
+
+  .workspace .operation-room-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workspace .operation-room-card {
+    min-height: 145px;
+  }
+
+  .workspace .operation-room-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .workspace .operation-state {
+    justify-self: start;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .room-operations-dialog {
+    padding: 16px;
+  }
+
+  .room-operations-dialog .room-detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .room-operations-dialog .room-photo-frame,
+  .room-operations-dialog .room-photo-frame img {
+    min-height: 300px;
+  }
+
+  .workspace .dashboard-panel .arrival-list li {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .workspace .dashboard-panel .arrival-time {
+    grid-column: 2;
+    text-align: left;
+  }
+
+  .workspace .dashboard-panel :is(.arrival-list, .operation-list, .alert-row) {
+    padding-inline: 16px;
+  }
+
+  .workspace :is(.admin-card, .customer-detail, .customer-search-toolbar) {
+    padding: 16px;
+  }
+
+  .workspace .admin-card > .table-scroll {
+    margin-inline: -16px;
+  }
+
+  .workspace .payment-instructions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .room-operations-dialog .operation-detail-list > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .workspace .dialog-actions {
+    flex-wrap: wrap;
+  }
+
+  .workspace .dashboard-metrics,
+  .workspace .admin-kpis,
+  .workspace .admin-dimensions,
+  .workspace .admin-permissions {
+    grid-template-columns: 1fr;
+  }
+}

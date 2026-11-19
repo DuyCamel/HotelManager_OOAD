@@ -19,16 +19,22 @@ dialog::backdrop {
   margin-bottom: 18px;
 }
 .dialog-head .eyebrow {
-  font-size: 8px;
+  font-size: var(--text-xs);
 }
 .dialog-head h2 {
-  font-size: 23px;
+  font-size: var(--heading-md);
   margin: 0;
 }
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
+}
+.form-grid > label {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
 }
 .form-grid label:has(textarea) {
   grid-column: 1/-1;
@@ -59,7 +65,7 @@ dialog::backdrop {
   margin-bottom: 8px;
 }
 .dialog-actions button {
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 #toast {
   position: fixed;

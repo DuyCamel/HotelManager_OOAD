@@ -20,16 +20,27 @@ const config = {
   mode: e.DB_MODE || "demo",
   name: e.APP_NAME || "Aurora Hotel",
   timeZone: e.APP_TIME_ZONE || "Asia/Ho_Chi_Minh",
+  checkInTime: e.APP_CHECK_IN_TIME || "14:00:00",
+  checkOutTime: e.APP_CHECK_OUT_TIME || "12:00:00",
+  noShowTime: e.APP_NO_SHOW_TIME || "22:00:00",
+  bookingHoldMinutes: Number(e.APP_BOOKING_HOLD_MINUTES || 10),
   sessionSecret: e.SESSION_SECRET || "",
   sessionHours: Number(e.SESSION_HOURS || 8),
   otpProvider: e.OTP_PROVIDER || "disabled",
+  otpNum: (e.OTPNUM || e.otpnum || e.OTP_NUM || "").trim(),
   trustProxy: e.TRUST_PROXY === "1",
+  sepay: {
+    apiKey: e.SEPAY_WEBHOOK_API_KEY || "",
+    bankId: (e.SEPAY_BANK_ID || "").trim(),
+    accountNo: (e.SEPAY_ACCOUNT_NO || "").trim(),
+    accountName: (e.SEPAY_ACCOUNT_NAME || "").trim(),
+  },
   demoFile: path.resolve(e.DEMO_DATA_FILE || "data/demo.json"),
   backupDir: e.SQL_BACKUP_DIR || "",
   sql: {
     server: e.DB_SERVER || "localhost",
     port: Number(e.DB_PORT || 1433),
-    database: e.DB_NAME || "HotelManagerOOAD",
+    database: e.DB_NAME || "",
     user: e.DB_USER,
     password: e.DB_PASSWORD,
     options: {
@@ -59,6 +70,29 @@ ensure(
     config.sessionHours > 0 &&
     config.sessionHours <= 72,
   "SESSION_HOURS phải từ 1 đến 72.",
+);
+for (const [name, value] of [
+  ["APP_CHECK_IN_TIME", config.checkInTime],
+  ["APP_CHECK_OUT_TIME", config.checkOutTime],
+  ["APP_NO_SHOW_TIME", config.noShowTime],
+])
+  ensure(
+    /^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(String(value)),
+    `${name} phải có dạng HH:mm hoặc HH:mm:ss.`,
+  );
+const timeMinutes = (value) => {
+  const [hours, minutes] = String(value).split(":").map(Number);
+  return hours * 60 + minutes;
+};
+ensure(
+  timeMinutes(config.noShowTime) > timeMinutes(config.checkInTime),
+  "APP_NO_SHOW_TIME phải sau APP_CHECK_IN_TIME.",
+);
+ensure(
+  Number.isInteger(config.bookingHoldMinutes) &&
+    config.bookingHoldMinutes > 0 &&
+    config.bookingHoldMinutes <= 1440,
+  "APP_BOOKING_HOLD_MINUTES phải từ 1 đến 1440.",
 );
 if (config.production) {
   ensure(config.mode === "sqlserver", "Production phải dùng SQL Server.");

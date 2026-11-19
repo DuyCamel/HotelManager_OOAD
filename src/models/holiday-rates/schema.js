@@ -6,8 +6,11 @@ module.exports = {
     {
       name: "Name",
       typeId: "RoomTypeId",
+      scheduleType: "ScheduleType",
       startDate: "StartDate",
       endDate: "EndDate",
+      startMonthDay: "StartMonthDay",
+      endMonthDay: "EndMonthDay",
       percent: "IncreasePercent",
       isActive: "IsActive",
     },

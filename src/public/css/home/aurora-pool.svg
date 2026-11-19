@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Aurora rooftop pool</title>
+  <desc id="desc">A sunlit rooftop pool with tropical plants and a distant city</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#67c7d5"/>
+      <stop offset=".65" stop-color="#d9efcf"/>
+      <stop offset="1" stop-color="#ffe1a4"/>
+    </linearGradient>
+    <linearGradient id="pool" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#43b9c3"/>
+      <stop offset="1" stop-color="#176e8c"/>
+    </linearGradient>
+    <pattern id="ripples" width="150" height="45" patternUnits="userSpaceOnUse">
+      <path d="M0 22c35-18 68-18 104 0 18 9 32 9 46 0" fill="none" stroke="#d7fff2" stroke-width="5" opacity=".36"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="1240" cy="166" r="95" fill="#fff4a5"/>
+  <g opacity=".48" fill="#27687a">
+    <path d="M0 510h130V398h79v112h102V325h115v185h83V417h95v93h110V356h126v154h102V390h77v120h93V299h135v211h89V415h94v95h130v120H0z"/>
+  </g>
+  <path d="M0 590h1600v310H0z" fill="#e5c695"/>
+  <path d="M112 635h1376l-107 265H219z" fill="url(#pool)" stroke="#f8efd8" stroke-width="24"/>
+  <path d="M126 644h1348l-100 244H226z" fill="url(#ripples)"/>
+  <g transform="translate(1025 495)">
+    <path d="M0 128h364l-65 81H38z" fill="#fff8e4"/>
+    <path d="M57 81h255l45 62H9z" fill="#ef835f"/>
+    <path d="M55 210l-22 114m281-114 22 114" stroke="#725b47" stroke-width="15"/>
+    <rect x="91" y="51" width="94" height="61" rx="30" fill="#fff8e8" transform="rotate(-8 91 51)"/>
+    <rect x="194" y="50" width="94" height="61" rx="30" fill="#ffe2a8" transform="rotate(7 194 50)"/>
+  </g>
+  <g fill="#3f8c6c">
+    <path d="M75 642C-12 515 27 381 149 329c43 147 15 251-74 313z"/>
+    <path d="M104 639c-1-137 71-231 214-235-8 132-79 211-214 235z" fill="#67a976"/>
+    <path d="M1501 639c-48-140-18-241 93-305 42 123 11 225-93 305z"/>
+    <path d="M1488 639c-2-115-68-191-183-204 7 112 68 180 183 204z" fill="#70ad7d"/>
+  </g>
+  <path d="M98 610v170m1401-172v174" stroke="#735845" stroke-width="21"/>
+  <g transform="translate(680 510)">
+    <ellipse cx="112" cy="192" rx="108" ry="22" fill="#183f55" opacity=".32"/>
+    <path d="M105 43c-62 27-78 89-46 135 38 54 119 52 151-2 32-54 6-116-56-137-17-6-33-5-49 4z" fill="#f5bc8d"/>
+    <path d="M75 72c1-62 96-82 127-20 13 25 7 44-2 57-18-35-72-53-125-37z" fill="#38464c"/>
+    <path d="M63 139c43 25 91 26 143 2l49 57H15z" fill="#f0745c"/>
+  </g>
+</svg>

@@ -1,27 +1,32 @@
-/**
- * TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A2, A3, A6, C4
- * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
- * Điều phối hợp đồng dữ liệu theo màn hình, lọc và phân trang; không tiếp tục tải mọi bảng qua /api/data khi mở một trang.
- * Giữ lọc chủ sở hữu của CUSTOMER và quyền từng vai trò; tích hợp truy vấn báo cáo TV3/C4 và hồ sơ/thẻ A2.
- * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
- */
-/** Truy vấn theo vai trò; không trả hash mật khẩu hoặc hồ sơ của khách khác. */
-const { ensure } = require("../../core/errors/AppError");
-const { has } = require("../../core/auth/rbac");
-const { safeAccount } = require("../../core/validation/fields");
+/** Public landing-page data. Operational catalogs stay out of the homepage. */
+const config = require("../../config/env");
+const fallback = {
+  hotelName: "Aurora Hotel",
+  address: "TP. Hồ Chí Minh",
+  hotline: "028 1234 567",
+  checkInTime: "14:00",
+  checkOutTime: "12:00",
+};
+
+const shortTime = (value, defaultValue) =>
+  /^\d{2}:\d{2}/.test(String(value || ""))
+    ? String(value).slice(0, 5)
+    : defaultValue;
 
 module.exports = (repo) => ({
   async public() {
+    const [settings = {}] = await repo.list("settings");
+    const hotel = {
+      hotelName: settings.hotelName || fallback.hotelName,
+      address: settings.address || fallback.address,
+      hotline: settings.hotline || fallback.hotline,
+      checkInTime: shortTime(config.checkInTime, fallback.checkInTime),
+      checkOutTime: shortTime(config.checkOutTime, fallback.checkOutTime),
+    };
+
     return {
-      types: await repo.list("types"),
-      services: (await repo.list("services")).filter((x) => x.isActive),
-      hotel: (await repo.list("settings")).map((s) => ({
-        hotelName: s.hotelName,
-        address: s.address,
-        hotline: s.hotline,
-        checkInTime: s.checkInTime,
-        checkOutTime: s.checkOutTime,
-      }))[0],
+      hotel,
+      phoneHref: `tel:${String(hotel.hotline).replace(/[^+\d]/g, "")}`,
     };
   },
 });

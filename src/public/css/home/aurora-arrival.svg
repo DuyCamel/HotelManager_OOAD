@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Aurora hotel arrival</title>
+  <desc id="desc">A bright hotel terrace overlooking a warm city skyline</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#89d8df"/>
+      <stop offset="0.58" stop-color="#f7ddb0"/>
+      <stop offset="1" stop-color="#f39a76"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d8f5ef" stop-opacity=".78"/>
+      <stop offset="1" stop-color="#4c8f9b" stop-opacity=".46"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#d99070"/>
+      <stop offset="1" stop-color="#f0c995"/>
+    </linearGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="26"/></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="1240" cy="186" r="105" fill="#fff2ad" opacity=".9"/>
+  <circle cx="1240" cy="186" r="155" fill="#fff1a4" opacity=".24" filter="url(#blur)"/>
+  <g opacity=".65">
+    <path d="M0 515h115v-118h78v118h70V344h106v171h76V424h87v91h84V308h118v207h89V386h69v129h93V270h124v245h67V372h101v143h83v-97h80v97h100v385H0z" fill="#275d6e"/>
+    <g fill="#ffe8a8" opacity=".72">
+      <path d="M297 374h18v28h-18zm35 0h18v28h-18zm311-30h22v34h-22zm41 0h22v34h-22zm317-35h22v31h-22zm42 0h22v31h-22zm185 101h19v27h-19z"/>
+    </g>
+  </g>
+  <path d="M0 600c298-62 578-44 837 8 270 55 512 70 763 9v283H0z" fill="#164b5c" opacity=".8"/>
+  <rect x="820" y="84" width="22" height="642" rx="11" fill="#fff7df" opacity=".86"/>
+  <rect x="846" y="84" width="16" height="642" fill="#427988" opacity=".35"/>
+  <path d="M860 82h740v648H860z" fill="url(#glass)" stroke="#e8f8ee" stroke-width="8"/>
+  <path d="M1232 86v640M861 414h739" stroke="#eef9ed" stroke-width="8" opacity=".8"/>
+  <path d="M0 716h1600v184H0z" fill="url(#floor)"/>
+  <path d="M0 724h1600" stroke="#fff1cf" stroke-width="12" opacity=".64"/>
+  <g transform="translate(1035 632)">
+    <path d="M0 119h350l-38 65H36z" fill="#eff3dd"/>
+    <path d="M36 105h281l34 39H0z" fill="#fff9e8"/>
+    <path d="M58 75h235l28 42H32z" fill="#ee8a65"/>
+    <path d="M49 184l-10 90m285-90 13 90" stroke="#5d625d" stroke-width="13"/>
+    <rect x="89" y="41" width="75" height="48" rx="23" fill="#fff8e8" transform="rotate(-8 89 41)"/>
+    <rect x="180" y="38" width="76" height="50" rx="24" fill="#fff8e8" transform="rotate(8 180 38)"/>
+  </g>
+  <g transform="translate(1425 558)">
+    <rect x="40" y="92" width="22" height="183" fill="#715b45"/>
+    <path d="M50 0c-75 55-64 132 0 164 65-31 72-111 0-164z" fill="#3b866e"/>
+    <path d="M-5 61c-42 67-4 115 55 111 12-61-5-101-55-111z" fill="#66a77d"/>
+  </g>
+</svg>

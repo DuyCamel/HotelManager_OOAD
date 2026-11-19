@@ -21,8 +21,11 @@ const email = (v) => {
   return v;
 };
 const phone = (v) => {
-  v = text(v, "Điện thoại", 15);
-  ensure(/^\+?[0-9]{9,14}$/.test(v), "Điện thoại không hợp lệ.");
+  v = text(v, "Số điện thoại", 15);
+  ensure(
+    /^0[0-9]{9}$/.test(v),
+    "Số điện thoại không hợp lệ. Phải gồm 10 chữ số và bắt đầu bằng số 0.",
+  );
   return v;
 };
 const number = (v, label, min = 0, max = 1e12) => {

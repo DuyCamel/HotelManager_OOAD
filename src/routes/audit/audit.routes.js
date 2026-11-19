@@ -6,5 +6,6 @@ module.exports = (models) => {
     c = require("../../controllers/audit/audit.controller")(models);
   router.get("/app/audit", required, c.index);
   router.get("/api/modules/audit", required, c.data);
+  router.get("/api/modules/audit.csv", required, c.csv);
   return router;
 };

@@ -1,2 +1,2 @@
 <!-- View dashboard: layout chung, dữ liệu/controller và JavaScript module riêng. -->
-<%- include('../layouts/workspace',{moduleName:'dashboard',headingView:'../dashboard/_heading'}) %>
+<%- include('../layouts/workspace',{moduleName:'dashboard',headingView:initialPage === 'services-read' ? '../dashboard/_services-heading' : '../dashboard/_heading'}) %>

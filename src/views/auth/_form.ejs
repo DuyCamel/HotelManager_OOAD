@@ -2,7 +2,7 @@
 TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A1, A4
 Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
 Hoàn thiện trạng thái validation/loading/đăng ký thành công; đăng nhập bằng email, không cho nhân viên tự đăng ký.
-OTP SMS chuyển Admin thuộc module hệ thống, không thêm OTP giả vào luồng đăng nhập.
+OTP SMS chuyển quyền Quản lý thuộc module hệ thống, không thêm OTP giả vào luồng đăng nhập.
 Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
 -->
 <!-- Đăng nhập / đăng ký bằng email; hiển thị tài khoản mẫu khi ở chế độ demo. -->
@@ -27,6 +27,7 @@ Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
 <small>STAY INSPIRED · LIVE WELL</small>
 </section>
 <section class="auth-form">
+<div id="auth-login-panel">
 <span class="eyebrow">CHÀO MỪNG BẠN</span>
 <h2>
 <%= register?'Tạo tài khoản':'Đăng nhập' %>
@@ -35,22 +36,32 @@ Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
 <%= register?'Đặt kỳ nghỉ tiếp theo cùng Aurora.':'Dùng email để truy cập không gian của bạn.' %>
 </p>
 <form data-auth="<%= register?'register':'login' %>">
+<% if(!register && nextPath){ %>
+<input type="hidden" name="next" value="<%= nextPath %>">
+<% } %>
 <% if(register){ %>
 <label>Họ và tên<input name="name" autocomplete="name" required maxlength="120">
 </label>
-<label>Số điện thoại<input name="phone" autocomplete="tel" required pattern="[+0-9]{9,14}">
+<label>Số điện thoại<input name="phone" autocomplete="tel" required pattern="0[0-9]{9}" maxlength="10" title="Số điện thoại phải gồm 10 chữ số và bắt đầu bằng số 0" placeholder="0xxxxxxxxx">
 </label>
 <% } %>
 <label>Email<input name="email" type="email" autocomplete="email" required placeholder="ban@example.com">
 </label>
-<label>Mật khẩu<input name="password" type="password" autocomplete="<%= register?'new-password':'current-password' %>" required minlength="8">
+<% if(!register){ %>
+<div class="auth-field">
+  <label for="auth-password-input">Mật khẩu</label>
+  <input id="auth-password-input" name="password" type="password" autocomplete="current-password" required minlength="8">
+  <div class="auth-field-helper">
+    <button type="button" class="auth-forgot-btn" data-action="forgot-toggle">Quên mật khẩu?</button>
+  </div>
+</div>
+<% } else { %>
+<label>Mật khẩu<input name="password" type="password" autocomplete="new-password" required minlength="8">
 </label>
-<% if(register){ %>
 <label>Nhập lại mật khẩu<input name="confirmPassword" type="password" autocomplete="new-password" required minlength="8">
 </label>
 <% } %>
-<p class="form-message" role="status">
-</p>
+<div class="form-message" role="status"></div>
 <button class="primary wide">
 <%= register?'Tạo tài khoản':'Đăng nhập →' %>
 </button>
@@ -60,14 +71,54 @@ Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
 <%= register?'Đăng nhập':'Đăng ký' %>
 </a>
 </p>
-<% if(config.mode==='demo'){ %>
-<details class="demo-note">
-<summary>Tài khoản trải nghiệm</summary>
-<p>Mật khẩu chung: <strong>Demo@123</strong>
-</p>
-<p>admin@hotel.test<br>manager@hotel.test<br>reception@hotel.test<br>housekeeping@hotel.test<br>customer@hotel.test</p>
-<small>Dữ liệu mẫu cục bộ · không gửi OTP/SMS thật.</small>
-</details>
+</div>
+<% if(!register){ %>
+<div id="auth-forgot-panel" class="auth-subpanel" hidden style="display: none;">
+  <span class="eyebrow">KHÔI PHỤC TÀI KHOẢN</span>
+  <h2>Quên mật khẩu?</h2>
+  <p class="muted">Nhập email liên kết với tài khoản của bạn để nhận liên kết đặt lại mật khẩu mới.</p>
+  <form id="forgot-password-form" class="auth-forgot-form">
+    <label>Email liên kết tài khoản
+      <input type="email" name="forgotEmail" id="forgot-email-input" required placeholder="ban@example.com" autocomplete="email">
+    </label>
+    <div class="form-message" id="forgot-form-message" role="status"></div>
+    <button type="submit" class="primary wide" id="forgot-submit-btn">
+      Gửi liên kết đổi mật khẩu →
+    </button>
+    <div class="auth-forgot-actions">
+      <button type="button" class="auth-back-btn" data-action="forgot-back">
+        ← Quay lại Đăng nhập
+      </button>
+    </div>
+  </form>
+</div>
+<% } %>
+<% if(!register){ const isDemo = config.mode === 'demo'; %>
+<div class="quick-login-box" data-quick-login>
+<span class="quick-login-label">Điền nhanh tài khoản test (<%= isDemo ? 'Demo' : 'SQL Server' %>)</span>
+<div class="quick-login-grid">
+<button type="button" class="quick-role-btn" data-quick-email="<%= isDemo ? 'manager@hotel.test' : 'quanly@khachsan.test' %>" data-quick-pass="mk1233456">
+<strong>Quản lý (quyền cao nhất)</strong>
+<small><%= isDemo ? 'manager@hotel.test' : 'quanly@khachsan.test' %></small>
+</button>
+<button type="button" class="quick-role-btn" data-quick-email="<%= isDemo ? 'admin@hotel.test' : 'admin@khachsan.test' %>" data-quick-pass="mk1233456">
+<strong>Admin</strong>
+<small><%= isDemo ? 'admin@hotel.test' : 'admin@khachsan.test' %></small>
+</button>
+<button type="button" class="quick-role-btn" data-quick-email="<%= isDemo ? 'reception@hotel.test' : 'letan1@khachsan.test' %>" data-quick-pass="mk1233456">
+<strong>Lễ tân</strong>
+<small><%= isDemo ? 'reception@hotel.test' : 'letan1@khachsan.test' %></small>
+</button>
+<button type="button" class="quick-role-btn" data-quick-email="<%= isDemo ? 'housekeeping@hotel.test' : 'buongphong1@khachsan.test' %>" data-quick-pass="mk1233456">
+<strong>Buồng phòng</strong>
+<small><%= isDemo ? 'housekeeping@hotel.test' : 'buongphong1@khachsan.test' %></small>
+</button>
+<button type="button" class="quick-role-btn" style="grid-column: 1 / -1;" data-quick-email="<%= isDemo ? 'customer@hotel.test' : 'khach01@khachsan.test' %>" data-quick-pass="mk1233456">
+<strong>Khách hàng</strong>
+<small><%= isDemo ? 'customer@hotel.test' : 'khach01@khachsan.test' %></small>
+</button>
+</div>
+</div>
 <% } %>
 </section>
 </main>

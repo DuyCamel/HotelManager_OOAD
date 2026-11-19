@@ -5,6 +5,7 @@ module.exports = (models) => {
   const router = Router(),
     c = require("../../controllers/accounts/accounts.controller")(models);
   router.get("/app/accounts", required, c.index);
+  router.get("/api/modules/accounts", required, c.data);
   router.post("/api/action/account.create", required, c.create);
   router.post("/api/action/account.update", required, c.update);
   router.post("/api/action/account.toggle", required, c.toggle);

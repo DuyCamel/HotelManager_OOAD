@@ -1,12 +1,10 @@
 # Module và nơi làm việc
 
-Luồng chính: **route → controller → model → view**. SQL chạy trong ứng dụng chỉ nằm trong `src/models/`. `src/config/db.js` chỉ mở/đóng pool và cung cấp driver. Ba script tạo database đặt riêng tại `database/`.
+Luồng chính: **route → controller → model → view**. SQL runtime trong ứng dụng chỉ nằm trong `src/models/`. `src/config/db.js` chỉ mở/đóng pool và cung cấp driver. Script cài/nâng cấp database chuẩn đặt riêng tại `database/`.
 
 ```text
 database/
-  01_schema.sql
-  02_programmability.sql
-  03_seed.sql
+  HotelManagerOOAD.sql          Schema ứng dụng + migration v3 + seed idempotent
 docs/
   MODULES.md
   DATABASE_DICTIONARY.md
@@ -75,12 +73,12 @@ Giữ `/api/login`, `/api/register`, `/api/data`, `/api/action/booking.create` v
 
 ## Những việc vẫn chưa hoàn tất
 
-Đợt này tổ chức lại cấu trúc và tách code đang có. Các task chức năng B1 (đặt cùng ngày), B2 (gia hạn), A3 (audit có lọc/xuất đầy đủ), A4 (SMS thật), C1 (đồng bộ quy tắc SQL và chạy SQL thật), C2/C3/C4 (ảnh/tiện ích/countdown/báo cáo) vẫn cần thực hiện theo [phân công](PHAN_CONG_3_NGUOI.md). Không đánh dấu các task đó đã xong chỉ vì đã có folder.
+Đợt này tổ chức lại cấu trúc và tách code đang có. Các task chức năng còn lại được theo dõi trong [phân công](PHAN_CONG_3_NGUOI.md). Schema SQL chuẩn đã được hợp nhất ở version 4, nhưng chạy/nghiệm thu trên SQL Server thật vẫn là bước riêng; không đánh dấu nghiệp vụ xong chỉ vì đã có folder hoặc DDL.
 
 A6 đã hoàn thành **phần tách route/controller/model/view và JavaScript theo module**; các việc loading/401/phân trang và cải thiện UI còn lại vẫn giữ TODO. `reports.model.js`/`audit.model.js` hiện chỉ cung cấp dữ liệu đọc có kiểm tra quyền, chưa giả lập truy vấn tổng hợp/lọc còn thiếu.
 
 ## Database và tài liệu tự sinh
 
-Chạy SSMS theo thứ tự `database/01_schema.sql` → `02_programmability.sql` → `03_seed.sql`. Đổi schema phải cập nhật mapping model và chạy `npm run docs:dictionary`; `npm run docs:check` phát hiện từ điển đã lệch. File dictionary đọc DDL trong repo, không tự đọc database đang chạy và không tự thay đổi schema.
+Chọn database ứng dụng trong SSMS hoặc bằng `sqlcmd -d`, rồi chạy toàn bộ `database/HotelManagerOOAD.sql` để cài hoặc nâng cấp schema lên SchemaVersion 5. Tên database tùy chọn và phải khớp `DB_NAME`; script không tự tạo hoặc chuyển database. Đổi schema phải cập nhật mapping model và chạy `npm run docs:dictionary`; `npm run docs:check` phát hiện từ điển đã lệch. Dictionary chỉ đọc script chuẩn trong repo, không tự đọc hay thay đổi database đang chạy.
 
-Nghiệm thu thủ công theo vai trò, cả demo và SQL. Không có thư mục/file/script test tự động theo yêu cầu hiện tại.
+Chạy `npm run check`, sau đó nghiệm thu thủ công theo vai trò ở cả demo và SQL; SQL thật còn cần `npm run db:check` với cấu hình của máy triển khai.

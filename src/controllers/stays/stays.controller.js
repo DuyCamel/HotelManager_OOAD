@@ -8,8 +8,23 @@ module.exports = (models) => {
     async checkIn(req, res) {
       await respond(req, res, () => model.checkIn(req.user, req.body));
     },
+    async walkIn(req, res) {
+      await respond(req, res, () => model.walkIn(req.user, req.body));
+    },
+    async addSurcharge(req, res) {
+      await respond(req, res, () => model.addSurcharge(req.user, req.body));
+    },
     async changeRoom(req, res) {
       await respond(req, res, () => model.changeRoom(req.user, req.body));
+    },
+    async previewMove(req, res) {
+      await respond(req, res, () => model.previewMove(req.user, req.body));
+    },
+    async extend(req, res) {
+      await respond(req, res, () => model.extend(req.user, req.body));
+    },
+    async previewExtend(req, res) {
+      await respond(req, res, () => model.previewExtend(req.user, req.body));
     },
   };
 };

@@ -1,4 +1,4 @@
-/** Controller accounts: nhận HTTP, gọi model, render view. TODO TV1: hoàn thiện task tại docs/MODULES.md. */
+/** Controller accounts: nhận HTTP, gọi model, render view. */
 const page = require("../../core/http/page"),
   respond = require("../../core/http/respond");
 module.exports = (models) => {
@@ -7,6 +7,9 @@ module.exports = (models) => {
     index: page("accounts/index", "accounts", "accounts", {
       catalogKind: null,
     }),
+    async data(req, res) {
+      res.json(await model.overview(req.user));
+    },
     async create(req, res) {
       await respond(req, res, () => model.create(req.user, req.body));
     },

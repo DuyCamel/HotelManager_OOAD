@@ -1,11 +1,11 @@
 /**
  * TASK-BAN-GIAO (TODO) | Phụ trách: TV1 | Mã việc: A1, A6
  * Đây là việc còn lại/nghiệm thu, không phải mô tả tính năng đã hoàn tất.
- * Nghiệm thu ma trận quyền khi thêm route/gia hạn/báo cáo; không mở backup/config/role/Admin transfer cho Quản lý.
+ * Nghiệm thu ma trận quyền khi thêm route/gia hạn/báo cáo; Quản lý phụ trách phân quyền và dữ liệu hệ thống, Admin phụ trách cấu hình và vận hành khách sạn.
  * Nhân viên chỉ dùng dịch vụ phát sinh, không sửa giá; Buồng phòng không có tổng quan. Phối hợp chủ module khi thêm quyền.
  * Chi tiết, phụ thuộc và tiêu chí xong: docs/PHAN_CONG_3_NGUOI.md.
  */
-/** Ma trận quyền duy nhất, dùng cho cả service và menu. Khách không thừa kế quyền nhân viên. */
+/** Ma trận quyền duy nhất cho service; menu được định hình riêng theo từng vai trò. */
 const staff = [
   "bookings",
   "customers",
@@ -16,17 +16,22 @@ const staff = [
   "invoices",
 ];
 const grants = {
-  ADMIN: ["*"],
-  MANAGER: [...staff, "catalog", "accounts", "reports", "clean"],
-  RECEPTIONIST: staff,
+  MANAGER: ["accounts", "accounts.assign", "admin"],
+  ADMIN: [
+    ...staff,
+    "catalog",
+    "services.read",
+    "config",
+    "accounts",
+    "reports",
+    "clean",
+  ],
+  RECEPTIONIST: [...staff, "services.read"],
   HOUSEKEEPER: ["board", "clean"],
   CUSTOMER: ["self"],
 };
 const has = (user, permission) =>
-  Boolean(
-    user &&
-    (grants[user.role] || []).some((p) => p === "*" || p === permission),
-  );
+  Boolean(user && Object.hasOwn(grants, user.role) && grants[user.role].includes(permission));
 const { ensure } = require("../errors/AppError");
 const allow = (user, permission) =>
   ensure(

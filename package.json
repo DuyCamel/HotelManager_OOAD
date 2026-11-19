@@ -11,7 +11,11 @@
     "postinstall": "node scripts/setup-env.js",
     "setup": "node scripts/setup-env.js",
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
+    "dev": "node scripts/dev.js",
+    "dev:sepay": "node scripts/dev.js",
+    "test": "node --test --test-concurrency=1",
+    "check:syntax": "node scripts/check-syntax.js",
+    "check": "npm run check:syntax && npm run test && npm run docs:check",
     "db:check": "node scripts/check-db.js",
     "docs:dictionary": "node scripts/generate-dictionary.js",
     "docs:check": "node scripts/generate-dictionary.js --check"

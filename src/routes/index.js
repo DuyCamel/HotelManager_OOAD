@@ -11,6 +11,7 @@ module.exports = (models) => {
   r.use(require("./stays/stays.routes")(models));
   r.use(require("./service-usage/service-usage.routes")(models));
   r.use(require("./invoices/invoices.routes")(models));
+  r.use(require("./payments/payments.routes")(models));
   r.use(require("./housekeeping/housekeeping.routes")(models));
   r.use(require("./profile/profile.routes")(models));
   r.use(require("./settings/settings.routes")(models));

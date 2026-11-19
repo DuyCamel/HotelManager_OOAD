@@ -16,8 +16,8 @@ module.exports = (repo) => ({
     return repo.transaction(async (tx) => {
       const room = await tx.find("rooms", b.id);
       ensure(
-        room && ["DIRTY", "MAINTENANCE"].includes(room.status),
-        "Phòng không ở trạng thái cần dọn/bảo trì.",
+        room?.status === "DIRTY",
+        "Phòng không ở trạng thái cần dọn.",
       );
       const activeStays = new Set((await tx.list("stays")).filter((s) => !s.checkOutAt).map((s) => s.id));
       ensure(
@@ -25,13 +25,46 @@ module.exports = (repo) => ({
         "Phòng còn khách.",
       );
       for (const task of await tx.list("tasks"))
-        if (task.roomId === room.id && task.status !== "DONE")
+        if (task.roomId === room.id && task.status === "OPEN")
           await tx.update("tasks", task.id, {
             status: "DONE",
             completedAt: new Date().toISOString(),
           });
       await tx.update("rooms", room.id, { status: "AVAILABLE" });
-      await h.audit(tx, user, "Hoàn tất dọn/bảo trì", "ROOM", room.id);
+      await h.audit(tx, user, "Hoàn tất dọn phòng", "ROOM", room.id);
+      return { ok: true };
+    });
+  },
+  async resolveMaintenance(user, b) {
+    allow(user, "catalog");
+    return repo.transaction(async (tx) => {
+      const room = await tx.find("rooms", b.id);
+      const maintenanceTasks = (await tx.list("tasks")).filter(
+        (task) => task.roomId === room?.id && task.status === "MAINTENANCE",
+      );
+      ensure(
+        room?.status === "MAINTENANCE" || maintenanceTasks.length,
+        "Phòng không ở trạng thái bảo trì.",
+      );
+      const activeStays = new Set(
+        (await tx.list("stays"))
+          .filter((stay) => !stay.checkOutAt)
+          .map((stay) => stay.id),
+      );
+      ensure(
+        !(await tx.list("history")).some(
+          (row) =>
+            row.roomId === room.id && !row.toAt && activeStays.has(row.stayId),
+        ),
+        "Phòng còn khách.",
+      );
+      for (const task of maintenanceTasks)
+        await tx.update("tasks", task.id, {
+          status: "DONE",
+          completedAt: new Date().toISOString(),
+        });
+      await tx.update("rooms", room.id, { status: "AVAILABLE" });
+      await h.audit(tx, user, "Xác nhận sửa chữa hoàn tất", "ROOM", room.id);
       return { ok: true };
     });
   },
@@ -67,6 +100,46 @@ module.exports = (repo) => ({
       });
       await h.audit(tx, user, "Báo hư hại", "ROOM", room.id);
       return row;
+    });
+  },
+  async urge(user, b) {
+    allow(user, "board");
+    return repo.transaction(async (tx) => {
+      const room = await tx.find("rooms", b.id);
+      ensure(
+        room?.status === "DIRTY",
+        "Chỉ có thể báo dọn khẩn cho phòng đang ở trạng thái Cần dọn.",
+      );
+      const now = new Date();
+      const urgentDeadline = new Date(now.getTime() - 60000).toISOString();
+      const openTasks = (await tx.list("tasks")).filter(
+        (task) => String(task.roomId) === String(room.id) && task.status === "OPEN",
+      );
+      if (openTasks.length) {
+        for (const task of openTasks) {
+          await tx.update("tasks", task.id, { deadlineAt: urgentDeadline });
+        }
+      } else {
+        await tx.insert("tasks", {
+          id: v.id("DP").replace(/^DP/, "HK"),
+          roomId: room.id,
+          stayId: null,
+          checkoutAt: now.toISOString(),
+          deadlineAt: urgentDeadline,
+          completedAt: null,
+          status: "OPEN",
+          assignedTo: null,
+        });
+      }
+      await h.audit(
+        tx,
+        user,
+        "Báo buồng phòng dọn khẩn",
+        "ROOM",
+        room.id,
+        "Ưu tiên dọn ngay",
+      );
+      return { ok: true };
     });
   },
 });
